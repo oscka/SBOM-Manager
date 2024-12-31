@@ -1,20 +1,40 @@
 # SBOM-Manager
 
-템플릿 코드 테스트를 위한 PostgreSQL DB 초기화 방법
+템플릿 코드 테스트를 위한 PostgreSQL DB 컨테이너 생성 및 초기화 방법
 
--- 사용자 생성 및 권한 부여
+-- 1. 도커 이미지 Pull 및 컨테이너 생성
+```
+docker pull postgres:16.2
+docker run -d \
+    -p 5432:5432 \
+    --name postgres-db \
+    -e POSTGRES_PASSWORD={비밀번호} \
+    -e TZ=Asia/Seoul \
+    -v {로컬 마운트 Path}:/var/lib/postgresql/data \
+    postgres:16.2
+```
+
+-- 2. PostgreSQL 접속 후 DB 생성
+```
+docker exec -it postgres-db /bin/sh
+psql -U postgres
+CREATE DATABASE test_spring;
+```
+
+-- 3. 사용자 생성 및 권한 부여
 ```
 CREATE USER test WITH PASSWORD '1234';
 ALTER USER test WITH SUPERUSER;
 ```
 
-
--- 데이터베이스 생성
+-- 4. 생성한 DB로 접속 후 스키마 생성
 ```
-CREATE DATABASE test_spring;
+exit
+psql -U test -d test_spring -W
+CREATE SCHEMA test_schema;
 ```
 
--- 테이블 생성
+-- 5. 생성한 스키마에 테이블 생성
 ```
 CREATE TABLE test_schema.users (
     id SERIAL PRIMARY KEY,
@@ -28,7 +48,7 @@ CREATE TABLE test_schema.users (
 );
 ```
 
--- 테스트 데이터 삽입
+-- 6. 생성한 테이블에 테스트 데이터 삽입
 ```
 INSERT INTO test_schema.users (username, email, password, full_name, phone) 
 VALUES 
