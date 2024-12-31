@@ -19,6 +19,18 @@ configurations {
 	}
 }
 
+// Spring Boot 3.4.1과 호환되는 최신 버전(org.springframework.cloud:spring-cloud-starter-openfeign)
+// https://spring.io/projects/spring-cloud 참조
+ext {
+	set('springCloudVersion', "2024.0.0")
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+	}
+}
+
 repositories {
 	mavenCentral()
 }
