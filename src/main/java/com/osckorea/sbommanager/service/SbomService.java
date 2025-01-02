@@ -1,6 +1,5 @@
 package com.osckorea.sbommanager.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.osckorea.sbommanager.model.Sbom;
 import com.osckorea.sbommanager.repository.SbomRepository;
 import com.osckorea.sbommanager.util.Util;
@@ -8,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class SbomService {
@@ -22,8 +22,6 @@ public class SbomService {
     @Transactional
     public Sbom createSbom(String sbomJson) throws Exception {
         Sbom sbom = new Sbom();
-
-        util.test(sbomJson);
 
         sbom.setName(util.extractMetadataComponentName(sbomJson));
         sbom.setSbomJson(sbomJson);

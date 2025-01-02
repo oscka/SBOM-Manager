@@ -1,5 +1,7 @@
 package com.osckorea.sbommanager.model;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.osckorea.sbommanager.converter.StringToJsonbConverter;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
@@ -22,5 +24,4 @@ public class Sbom {
     private String name;
     @Column("data")
     private String sbomJson;
-
 }
