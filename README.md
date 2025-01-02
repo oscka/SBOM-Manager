@@ -46,6 +46,12 @@ CREATE TABLE test_schema.users (
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE test_schema.sboms (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255),
+    data JSONB
+);
 ```
 
 -- 6. 생성한 테이블에 테스트 데이터 삽입
@@ -59,11 +65,11 @@ VALUES
 
 ## API Test Tool로 Controller에 매핑되어있는 주소로 API 테스트
 
-### GET ALL User
+### GET ALL User(GET)
 
 http://localhost:8088/sample-api/v1/test/user
 
-### Create User
+### Create User(POST)
 
 http://localhost:8088/sample-api/v1/test/user
 
@@ -78,7 +84,7 @@ EX) Body
 "isActive": true
 }
 ```
-### Edit User
+### Edit User(PUT)
 
 http://localhost:8088/sample-api/v1/test/user/{id}
 
@@ -93,6 +99,14 @@ EX) Body
 "isActive": true
 }
 ```
-### Delete User
+### Delete User(DELETE)
 
 http://localhost:8088/sample-api/v1/test/user/{id}
+
+### Create Sbom(POST)
+
+http://localhost:8088/sample-api/v1/test/managed/sbom
+
+EX) Body
+https://osc-korea.atlassian.net/wiki/spaces/consulting/pages/1274150926/SBOM+Generator#%EA%B0%81-%EC%96%B8%EC%96%B4%EC%9D%98-%ED%8C%8C%EC%9D%BC,%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B8%B0%EB%B0%98-SBOM
+링크에 존재하는 Syft CycloneDX Form의 json을 붙여넣기
