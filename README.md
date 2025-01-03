@@ -49,7 +49,13 @@ CREATE TABLE test_schema.users (
 
 CREATE TABLE test_schema.sboms (
     id SERIAL PRIMARY KEY,
+    bom_format VARCHAR(255),
+    spec_version VARCHAR(255),
+    component_type VARCHAR(255),
     name VARCHAR(255),
+    component_count INTEGER,
+    client_tool VARCHAR(255),
+    client_tool_version VARCHAR(255),
     data JSONB
 );
 ```
@@ -109,4 +115,4 @@ http://localhost:8088/sample-api/v1/test/managed/sbom
 
 EX) Body
 https://osc-korea.atlassian.net/wiki/spaces/consulting/pages/1274150926/SBOM+Generator#%EA%B0%81-%EC%96%B8%EC%96%B4%EC%9D%98-%ED%8C%8C%EC%9D%BC,%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B8%B0%EB%B0%98-SBOM
-링크에 존재하는 Syft CycloneDX Form의 json을 붙여넣기
+링크에 존재하는 Syft 로 생성한 CycloneDX, SPDX Form의 json을 붙여넣은 후 Send
