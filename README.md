@@ -73,11 +73,11 @@ VALUES
 
 ### GET ALL User(GET)
 
-http://localhost:8088/sample-api/v1/test/user
+URL : http://localhost:8088/sample-api/v1/test/user
 
 ### Create User(POST)
 
-http://localhost:8088/sample-api/v1/test/user
+URL : http://localhost:8088/sample-api/v1/test/user
 
 EX) Body
 ```
@@ -92,7 +92,7 @@ EX) Body
 ```
 ### Edit User(PUT)
 
-http://localhost:8088/sample-api/v1/test/user/{id}
+URL : http://localhost:8088/sample-api/v1/test/user/{id}
 
 EX) Body 
 ```
@@ -107,11 +107,11 @@ EX) Body
 ```
 ### Delete User(DELETE)
 
-http://localhost:8088/sample-api/v1/test/user/{id}
+URL : http://localhost:8088/sample-api/v1/test/user/{id}
 
 ### Create Sbom(POST)
 
-http://localhost:8088/sample-api/v1/test/managed/sbom
+URL : http://localhost:8088/sample-api/v1/test/managed/sbom
 
 EX) Body
 [https://osc-korea.atlassian.net/wiki/spaces/consulting/pages/1274150926/SBOM+Generator#%EA%B0%81-%EC%96%B8%EC%96%B4%EC%9D%98-%ED%8C%8C%EC%9D%BC,%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B8%B0%EB%B0%98-SBOM](https://osc-korea.atlassian.net/wiki/spaces/consulting/pages/1279983707/SBOM#Create-Sbom(POST))
