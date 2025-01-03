@@ -69,13 +69,15 @@ VALUES
 ('mike_wilson', 'mike@example.com', 'password789', 'Mike Wilson', '010-9999-8888');
 ```
 
-## API Test Tool로 Controller에 매핑되어있는 주소로 API 테스트
+## API 테스트(Swagger, Postman..)
+---
+### Simple Test API
 
-### GET ALL User(GET)
+#### GET ALL User(GET)
 
 URL : http://localhost:8088/sample-api/v1/test/user
 
-### Create User(POST)
+#### Create User(POST)
 
 URL : http://localhost:8088/sample-api/v1/test/user
 
@@ -90,7 +92,7 @@ EX) Body
 "isActive": true
 }
 ```
-### Edit User(PUT)
+#### Edit User(PUT)
 
 URL : http://localhost:8088/sample-api/v1/test/user/{id}
 
@@ -105,9 +107,12 @@ EX) Body
 "isActive": true
 }
 ```
-### Delete User(DELETE)
+#### Delete User(DELETE)
 
 URL : http://localhost:8088/sample-api/v1/test/user/{id}
+
+---
+### SBOM API
 
 ### Create Sbom(POST)
 
