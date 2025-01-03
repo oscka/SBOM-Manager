@@ -1,4 +1,4 @@
-package com.osckorea.sbommanager.converter;
+package com.osckorea.sbommanager.util.converter;
 
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.convert.WritingConverter;

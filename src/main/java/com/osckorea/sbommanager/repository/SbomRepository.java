@@ -1,10 +1,7 @@
 package com.osckorea.sbommanager.repository;
 
-import com.osckorea.sbommanager.model.Sbom;
-import org.springframework.data.jdbc.repository.query.Modifying;
-import org.springframework.data.jdbc.repository.query.Query;
+import com.osckorea.sbommanager.domian.entity.Sbom;
 import org.springframework.data.repository.CrudRepository;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository

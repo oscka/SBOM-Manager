@@ -1,13 +1,9 @@
-package com.osckorea.sbommanager.model;
+package com.osckorea.sbommanager.domian.entity;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.osckorea.sbommanager.converter.StringToJsonbConverter;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
-
-import java.time.LocalDateTime;
 
 @Table(name = "sboms", schema = "test_schema")
 @Getter
@@ -21,7 +17,17 @@ import java.time.LocalDateTime;
 public class Sbom {
     @Id
     private Long id;
+
+    private String bomFormat;
+    private String specVersion;
+
+    private String componentType;
     private String name;
+
+    private Integer componentCount;
+    //syft..
+    private String clientTool;
+    private String clientToolVersion;
     @Column("data")
     private String sbomJson;
 }

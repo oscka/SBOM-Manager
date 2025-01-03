@@ -1,7 +1,7 @@
 package com.osckorea.sbommanager.service;
 
 
-import com.osckorea.sbommanager.model.User;
+import com.osckorea.sbommanager.domian.entity.User;
 import com.osckorea.sbommanager.repository.TestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

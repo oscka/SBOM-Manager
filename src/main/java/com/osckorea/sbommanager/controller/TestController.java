@@ -1,6 +1,6 @@
 package com.osckorea.sbommanager.controller;
 
-import com.osckorea.sbommanager.model.User;
+import com.osckorea.sbommanager.domian.entity.User;
 import com.osckorea.sbommanager.service.TestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

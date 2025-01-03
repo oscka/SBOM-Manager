@@ -1,4 +1,4 @@
-package com.osckorea.sbommanager.model;
+package com.osckorea.sbommanager.domian.entity;
 
 import lombok.*;
 import org.springframework.data.annotation.Id;

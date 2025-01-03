@@ -1,7 +1,7 @@
 package com.osckorea.sbommanager.config;
 
-import com.osckorea.sbommanager.converter.JsonbToStringConverter;
-import com.osckorea.sbommanager.converter.StringToJsonbConverter;
+import com.osckorea.sbommanager.util.converter.JsonbToStringConverter;
+import com.osckorea.sbommanager.util.converter.StringToJsonbConverter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jdbc.repository.config.AbstractJdbcConfiguration;
 import org.springframework.data.jdbc.repository.config.EnableJdbcRepositories;
