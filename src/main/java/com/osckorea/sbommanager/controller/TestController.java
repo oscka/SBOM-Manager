@@ -4,11 +4,12 @@ import com.osckorea.sbommanager.domian.entity.User;
 import com.osckorea.sbommanager.service.TestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
@@ -20,6 +21,45 @@ import java.util.List;
 public class TestController {
     //    private final CommandBoardService commandService;
     private final TestService testService;
+
+    @GetMapping("/email")
+    public String getUserEmail(@RequestHeader(name = "X-Forwarded-Email", required = false) String email, HttpServletRequest request) {
+        if (email != null && !email.isEmpty()) {
+            return "Authenticated user email: " + email;
+        } else {
+            return "No authenticated user email found";
+        }
+    }
+
+    @GetMapping("/userinfo")
+    public ResponseEntity<String> getUserInfo(@RequestHeader("Authorization") String authorizationHeader) {
+        // Bearer Token 추출
+        String accessToken = authorizationHeader.replace("Bearer ", "");
+
+        // Google API 호출
+        String userInfo = fetchGoogleUserInfo(accessToken);
+
+        return ResponseEntity.ok(userInfo);
+    }
+
+    private String fetchGoogleUserInfo(String accessToken) {
+        String googleUserInfoEndpoint = "https://www.googleapis.com/oauth2/v3/userinfo";
+
+        // Authorization 헤더 설정
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        RestTemplate restTemplate = new RestTemplate();
+
+        // Google API 호출
+        ResponseEntity<String> response = restTemplate.exchange(googleUserInfoEndpoint,
+                org.springframework.http.HttpMethod.GET,
+                entity,
+                String.class);
+
+        return response.getBody();
+    }
 
     @Operation(summary = "Server Test", description = "서버를 테스트합니다.")
     @GetMapping()
