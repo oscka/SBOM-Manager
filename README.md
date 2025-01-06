@@ -126,6 +126,7 @@ EX) Body
 ## Oauth2 Proxy Test(작성중)
 
 ### OAuth2 Proxy Generate(Docker)
+OAuth2 Proxy는 현재 멀티 프로바이더를 지원하지 않기에 각각의 OAuth2 Proxy 인스턴스 생성 후 테스트 진행
 ```
 docker pull quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
 ```
@@ -133,8 +134,8 @@ docker pull quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
 ```
 docker run -d --name oauth2-proxy \
   -p 4181:4181 \
-  -e OAUTH2_PROXY_CLIENT_ID={CLIENT_ID} \
-  -e OAUTH2_PROXY_CLIENT_SECRET={CLIENT_SECRET} \
+  -e OAUTH2_PROXY_CLIENT_ID={Client ID} \
+  -e OAUTH2_PROXY_CLIENT_SECRET={Client Secret} \
   -e OAUTH2_PROXY_COOKIE_SECRET=DZ_GFz3zd7lv-7lGY97lblCJE8P1YaKe2bjVqZCU6ew= \
   -e OAUTH2_PROXY_PROVIDER=google \
   -e OAUTH2_PROXY_EMAIL_DOMAINS=* \
@@ -155,8 +156,8 @@ docker run -d --name oauth2-proxy \
 ```
 docker run -d --name oauth2-proxy-github \
   -p 4181:4181 \
-  -e OAUTH2_PROXY_CLIENT_ID={CLIENT_ID} \
-  -e OAUTH2_PROXY_CLIENT_SECRET={CLIENT_SECRET} \
+  -e OAUTH2_PROXY_CLIENT_ID={Client ID} \
+  -e OAUTH2_PROXY_CLIENT_SECRET={Client Secret} \
   -e OAUTH2_PROXY_COOKIE_SECRET=DZ_GFz3zd7lv-7lGY97lblCJE8P1YaKe2bjVqZCU6ew= \
   -e OAUTH2_PROXY_PROVIDER=github \
   -e OAUTH2_PROXY_EMAIL_DOMAINS=* \
