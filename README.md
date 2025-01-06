@@ -122,3 +122,103 @@ EX) Body
 [https://osc-korea.atlassian.net/wiki/spaces/consulting/pages/1274150926/SBOM+Generator#%EA%B0%81-%EC%96%B8%EC%96%B4%EC%9D%98-%ED%8C%8C%EC%9D%BC,%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B8%B0%EB%B0%98-SBOM](https://osc-korea.atlassian.net/wiki/spaces/consulting/pages/1279983707/SBOM#Create-Sbom(POST))
 링크에 존재하는 Syft 로 생성한 CycloneDX, SPDX Form의 json을 붙여넣은 후 Send
 
+---
+## Oauth2 Proxy Test(작성중)
+
+### OAuth 2.0 - Client 등록(Google, Github)
+#### Google
+
+승인된 리디렉션 URI : {Proxy Server URI}/oauth2/callback
+
+EX) http://localhost:4180/oauth2/callback
+<br>
+#### GitHub
+
+Homep URL : {Proxy Server URI}
+
+EX) http://localhost:4181
+
+Authorization callback URl : {Proxy Server URI}/oauth2/callback
+
+EX) http://localhost:4181/oauth2/callback
+
+<br>
+참고 : (Google)https://velog.io/@sdb016/OAuth-2.0-Client-%EB%93%B1%EB%A1%9D, (GitHub)https://developer-nyong.tistory.com/m/60
+
+### OAuth2 Proxy Generate(Docker)
+```
+docker pull quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
+```
+#### Google
+```
+docker run -d --name oauth2-proxy \
+  -p 4181:4181 \
+  -e OAUTH2_PROXY_CLIENT_ID={CLIENT_ID} \
+  -e OAUTH2_PROXY_CLIENT_SECRET={CLIENT_SECRET} \
+  -e OAUTH2_PROXY_COOKIE_SECRET=DZ_GFz3zd7lv-7lGY97lblCJE8P1YaKe2bjVqZCU6ew= \
+  -e OAUTH2_PROXY_PROVIDER=google \
+  -e OAUTH2_PROXY_EMAIL_DOMAINS=* \
+  -e OAUTH2_PROXY_UPSTREAMS=http://host.docker.internal:8088 \
+  -e OAUTH2_PROXY_COOKIE_SECURE=false \
+  -e OAUTH2_PROXY_REVERSE_PROXY=true \
+  -e OAUTH2_PROXY_HTTP_ADDRESS="0.0.0.0:4180" \
+  -e OAUTH2_PROXY_REDIRECT_URL=http://localhost:4180/oauth2/callback \
+  -e OAUTH2_PROXY_LOGGING_LEVEL=debug \
+  -e OAUTH2_PROXY_SET_XAUTHREQUEST=true \
+  -e OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER=true \
+  -e OAUTH2_PROXY_PASS_USER_HEADERS=true \
+  -e OAUTH2_PROXY_PASS_ACCESS_TOKEN=true \
+  quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
+```
+
+#### GitHub
+```
+docker run -d --name oauth2-proxy-github \
+  -p 4181:4181 \
+  -e OAUTH2_PROXY_CLIENT_ID={CLIENT_ID} \
+  -e OAUTH2_PROXY_CLIENT_SECRET={CLIENT_SECRET} \
+  -e OAUTH2_PROXY_COOKIE_SECRET=DZ_GFz3zd7lv-7lGY97lblCJE8P1YaKe2bjVqZCU6ew= \
+  -e OAUTH2_PROXY_PROVIDER=github \
+  -e OAUTH2_PROXY_EMAIL_DOMAINS=* \
+  -e OAUTH2_PROXY_UPSTREAMS=http://host.docker.internal:8088 \
+  -e OAUTH2_PROXY_COOKIE_SECURE=false \
+  -e OAUTH2_PROXY_REVERSE_PROXY=true \
+  -e OAUTH2_PROXY_HTTP_ADDRESS="0.0.0.0:4181" \
+  -e OAUTH2_PROXY_REDIRECT_URL=http://localhost:4181/oauth2/callback \
+  -e OAUTH2_PROXY_LOGGING_LEVEL=debug \
+  -e OAUTH2_PROXY_SET_XAUTHREQUEST=true \
+  -e OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER=true \
+  -e OAUTH2_PROXY_PASS_USER_HEADERS=true \
+  -e OAUTH2_PROXY_PASS_ACCESS_TOKEN=true \
+  -e OAUTH2_PROXY_COOKIE_NAME=_oauth2_proxy_git \
+  quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
+```
+
+### Upstream API Test
+
+#### GET Users Email(GET)
+##### ALL
+
+URL : http://localhost:{Proxy Server URL}/sample-api/v1/test/email
+
+EX) http://localhost:4180/sample-api/v1/test/email  (Google)    
+    http://localhost:4181/sample-api/v1/test/email  (GitHub)
+    
+Describe : 해당 요청은 인증 후 Upstream 서버로 전달되는 OICD 토큰 및 헤더 정보를 통해 추출
+
+#### GET UserInfo(GET)
+##### Google
+
+URL : http://localhost:4180/sample-api/v1/test/userinfo
+
+Describe : 해당 요청은 인증 후 Upstream 서버로 전달되는 액세스 토큰을 사용한 Provider의 리소스 서버 조회 API를 사용한 사용자 정보 추출
+
+#### GET UserInfo(GET)
+##### GitHub
+
+URL : http://localhost:4181/sample-api/v1/test/userinfoGit
+
+Describe : 해당 요청은 인증 후 Upstream 서버로 전달되는 액세스 토큰을 사용한 Provider의 리소스 서버 조회 API를 사용한 사용자 정보 추출
+
+
+
