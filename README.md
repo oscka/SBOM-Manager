@@ -194,7 +194,7 @@ docker run -d --name oauth2-proxy-github \
   quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
 ```
 
-### Upstream API Test
+### Test Upstream Server APIs Through a Proxy Server
 
 #### GET Users Email(GET)
 ##### ALL
