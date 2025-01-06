@@ -125,26 +125,6 @@ EX) Body
 ---
 ## Oauth2 Proxy Test(작성중)
 
-### OAuth 2.0 - Client 등록(Google, Github)
-#### Google
-
-승인된 리디렉션 URI : {Proxy Server URI}/oauth2/callback
-
-EX) http://localhost:4180/oauth2/callback
-<br>
-#### GitHub
-
-Homep URL : {Proxy Server URI}
-
-EX) http://localhost:4181
-
-Authorization callback URl : {Proxy Server URI}/oauth2/callback
-
-EX) http://localhost:4181/oauth2/callback
-
-<br>
-참고 : (Google)https://velog.io/@sdb016/OAuth-2.0-Client-%EB%93%B1%EB%A1%9D, (GitHub)https://developer-nyong.tistory.com/m/60
-
 ### OAuth2 Proxy Generate(Docker)
 ```
 docker pull quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
