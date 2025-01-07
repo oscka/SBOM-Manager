@@ -68,9 +68,11 @@ VALUES
 ('jane_smith', 'jane@example.com', 'password456', 'Jane Smith', '010-8765-4321'),
 ('mike_wilson', 'mike@example.com', 'password789', 'Mike Wilson', '010-9999-8888');
 ```
+---
 
 ## API 테스트(Swagger, Postman..)
----
+
+
 ### Simple Test API
 
 #### GET ALL User(GET)
@@ -123,17 +125,47 @@ EX) Body
 링크에 존재하는 Syft 로 생성한 CycloneDX, SPDX Form의 json을 붙여넣은 후 Send
 
 ---
-## Oauth2 Proxy Test(작성중)
+## OAuth2 Proxy Test(작성중)
+
+### OAuth 2.0 - Client 등록(Google, Github)
+#### Google
+1. OAuth 동의 화면 구성 요약 (링크 참조)
+
+![Google EX 02](https://github.com/user-attachments/assets/19d58fed-3e59-4bc5-aa2f-3c08588c7ca9)
+
+2. OAuth Client ID 만들기
+
+![Google EX](https://github.com/user-attachments/assets/57ac04f4-9805-43e0-a8a6-2088c0111af3)
+
+> 승인된 리디렉션 URL : {Proxy Server URL}/oauth2/callback
+> EX) http://localhost:4180/oauth2/callback
+<br>
+
+#### GitHub
+OAuth App 구성 예시
+
+![Git EX](https://github.com/user-attachments/assets/7bb06862-8349-4a61-b41a-58d075fc52df)
+
+> Homepage URL : {Proxy Server URL}
+> EX) http://localhost:4181
+> Authorization callback URl : {Proxy Server URL}/oauth2/callback
+> EX) http://localhost:4181/oauth2/callback
+<br>
+> 참고 : (Google)https://velog.io/@sdb016/OAuth-2.0-Client-%EB%93%B1%EB%A1%9D, (GitHub)https://developer-nyong.tistory.com/m/60
+
 
 ### OAuth2 Proxy Generate(Docker)
-OAuth2 Proxy는 현재 멀티 프로바이더를 지원하지 않기에 각각의 OAuth2 Proxy 인스턴스 생성 후 테스트 진행
+> OAuth2 Proxy는 현재 멀티 프로바이더를 지원에 한계가 있기에 각각의 OAuth2 Proxy 인스턴스 생성 후 테스트 진행
+> 참고 : https://github.com/oauth2-proxy/oauth2-proxy/issues/926
+#### Image Pull (Google, Github)
 ```
 docker pull quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
 ```
-#### Google
+#### Container Run 
+##### Google
 ```
 docker run -d --name oauth2-proxy \
-  -p 4181:4181 \
+  -p 4180:4180 \
   -e OAUTH2_PROXY_CLIENT_ID={Client ID} \
   -e OAUTH2_PROXY_CLIENT_SECRET={Client Secret} \
   -e OAUTH2_PROXY_COOKIE_SECRET=DZ_GFz3zd7lv-7lGY97lblCJE8P1YaKe2bjVqZCU6ew= \
@@ -152,7 +184,7 @@ docker run -d --name oauth2-proxy \
   quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
 ```
 
-#### GitHub
+##### GitHub
 ```
 docker run -d --name oauth2-proxy-github \
   -p 4181:4181 \
@@ -177,29 +209,35 @@ docker run -d --name oauth2-proxy-github \
 
 ### Test Upstream Server APIs Through a Proxy Server
 
+> Default EndPoints (version : 7.7.x)
+> <br>
+> https://oauth2-proxy.github.io/oauth2-proxy/features/endpoints/
+
 #### GET Users Email(GET)
 ##### ALL
 
-URL : http://localhost:{Proxy Server URL}/sample-api/v1/test/email
-
-EX) http://localhost:4180/sample-api/v1/test/email  (Google)    
-    http://localhost:4181/sample-api/v1/test/email  (GitHub)
-    
-Describe : 해당 요청은 인증 후 Upstream 서버로 전달되는 OICD 토큰 및 헤더 정보를 통해 추출
+> URL : http://localhost:{Proxy Server URL}/sample-api/v1/test/email
+> <br>
+> EX)
+> <br>
+> http://localhost:4180/sample-api/v1/test/email  (Google)    
+> http://localhost:4181/sample-api/v1/test/email  (GitHub)
+> <br>
+> Describe : 해당 요청은 인증 후 Upstream 서버로 전달되는 OICD 토큰 및 헤더 정보를 통해 추출
 
 #### GET UserInfo(GET)
 ##### Google
 
-URL : http://localhost:4180/sample-api/v1/test/userinfo
-
-Describe : 해당 요청은 인증 후 Upstream 서버로 전달되는 액세스 토큰을 사용한 Provider의 리소스 서버 조회 API를 사용한 사용자 정보 추출
+> URL : http://localhost:4180/sample-api/v1/test/userinfo
+> <br>
+> Describe : 해당 요청은 인증 후 Upstream 서버로 전달되는 액세스 토큰을 사용한 Provider의 리소스 서버 조회 API를 사용한 사용자 정보 추출
 
 #### GET UserInfo(GET)
 ##### GitHub
 
-URL : http://localhost:4181/sample-api/v1/test/userinfoGit
-
-Describe : 해당 요청은 인증 후 Upstream 서버로 전달되는 액세스 토큰을 사용한 Provider의 리소스 서버 조회 API를 사용한 사용자 정보 추출
+> URL : http://localhost:4181/sample-api/v1/test/userinfoGit
+> <br>
+> Describe : 해당 요청은 인증 후 Upstream 서버로 전달되는 액세스 토큰을 사용한 Provider의 리소스 서버 조회 API를 사용한 사용자 정보 추출
 
 
 
