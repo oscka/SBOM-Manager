@@ -23,7 +23,6 @@ import java.io.IOException;
 public class SbomController {
 
     private final SbomService sbomService;
-    private final OauthService oauthService;
 
     @Operation(summary = "Get All SBOM", description = "모든 SBOM을 가져옵니다.")
     @GetMapping("/sbom")
@@ -32,7 +31,7 @@ public class SbomController {
         return ResponseEntity.ok(sboms);
     }
 
-    @Operation(summary = "SBOM Create", description = "SBOM을 저장합니다.")
+    @Operation(summary = "SBOM Create", description = "SBOM을 저장합니다(사용자 ID 저장을 위한 Oauth2 인증 필수).")
     @PostMapping("/sbom")
     public ResponseEntity<Sbom> createUser(@RequestBody String sbomJson, @RequestHeader("X-Forwarded-Email") String user) throws Exception {
         Sbom createdSbom = sbomService.createSbom(sbomJson, user);
