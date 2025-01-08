@@ -38,7 +38,7 @@ public class SbomController {
         return new ResponseEntity<>(createdSbom, HttpStatus.CREATED);
     }
 
-    @Operation(summary = "Get All SBOM", description = "특정 SBOM을 가져옵니다.")
+    @Operation(summary = "Get SBOM", description = "SBOM(분석) 조회")
     @GetMapping("/sbom/{id}")
     public ResponseEntity<SbomDTO> getSbom(@PathVariable("id") Long id) throws IOException {
         SbomDTO sbom = sbomService.getSbomDTO(id);

@@ -23,12 +23,6 @@ public class OuathTestController {
 
     private final OauthService oauthService;
 
-    // (Google AND GitHub)인증 성공 시 api 사용을 위한 토큰 및 헤더 값 출력
-    @GetMapping("/login")
-    public String login() {
-        return "";
-    }
-
     // (Google AND GitHub)인증 성공 시 Proxy Server로 부터 받은 헤더 정보로 부터의 사용자 정보 출력
     @GetMapping("/email")
     public String getUserEmail(@RequestHeader(name = "X-Forwarded-Email", required = false) String email, HttpServletRequest request) {
