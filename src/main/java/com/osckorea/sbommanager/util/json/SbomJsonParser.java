@@ -1,13 +1,18 @@
 package com.osckorea.sbommanager.util.json;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.osckorea.sbommanager.domian.dto.SbomDTO;
 import com.osckorea.sbommanager.domian.entity.Sbom;
 import com.osckorea.sbommanager.domian.enums.SbomConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -32,7 +37,11 @@ public class SbomJsonParser {
         sbom.setBomFormat(rootNode.path("bomFormat").asText());
         sbom.setSpecVersion(rootNode.path("specVersion").asText());
         sbom.setComponentType(rootNode.path("metadata").path("component").path("type").asText());
-        sbom.setName(rootNode.path("metadata").path("component").path("name").asText());
+
+        String fullPath = rootNode.path("metadata").path("component").path("name").asText();
+        String componentName = new File(fullPath).getName();
+        sbom.setName(componentName);
+
         sbom.setComponentCount(rootNode.path("components").size());
 
         JsonNode toolsNode = rootNode.path("metadata").path("tools").path("components");
@@ -84,4 +93,53 @@ public class SbomJsonParser {
         }
         return "file";
     }
+
+    public List<SbomDTO.ComponentInfo> componentInfosParseCDX(String jsonData) throws IOException {
+        JsonNode componentsNode = objectMapper.readTree(jsonData).get("components");
+
+        List<SbomDTO.ComponentInfo> componentInfos = new ArrayList<>();
+
+        if (componentsNode != null && componentsNode.isArray()) {
+            for (JsonNode componentNode : componentsNode) {
+                String name = componentNode.get("name").asText();
+                String version = componentNode.get("version").asText();
+                String id = componentNode.get("bom-ref").asText();
+
+                SbomDTO.ComponentInfo componentInfo = SbomDTO.ComponentInfo.builder()
+                        .name(name)
+                        .version(version)
+                        .id(id)
+                        .build();
+
+                componentInfos.add(componentInfo);
+            }
+        }
+
+        return componentInfos;
+    }
+
+    public List<SbomDTO.ComponentInfo> componentInfosParseSPDX(String jsonData) throws IOException {
+        JsonNode componentsNode = objectMapper.readTree(jsonData).get("packages");
+
+        List<SbomDTO.ComponentInfo> componentInfos = new ArrayList<>();
+
+        if (componentsNode != null && componentsNode.isArray()) {
+            for (JsonNode componentNode : componentsNode) {
+                String name = componentNode.get("name").asText();
+                String version = componentNode.get("versionInfo").asText();
+                String id = componentNode.get("SPDXID").asText();
+
+                SbomDTO.ComponentInfo componentInfo = SbomDTO.ComponentInfo.builder()
+                        .name(name)
+                        .version(version)
+                        .id(id)
+                        .build();
+
+                componentInfos.add(componentInfo);
+            }
+        }
+
+        return componentInfos;
+    }
+
 }

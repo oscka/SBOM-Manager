@@ -4,6 +4,7 @@ import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
+import java.time.LocalDateTime;
 
 @Table(name = "sboms", schema = "test_schema")
 @Getter
@@ -28,6 +29,13 @@ public class Sbom {
     //syft..
     private String clientTool;
     private String clientToolVersion;
+
+    @Column("created_at")
+    private LocalDateTime createdAt;
+
+    @Column("created_by")
+    private String createdBy;
+
     @Column("data")
     private String sbomJson;
 }
