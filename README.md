@@ -56,6 +56,8 @@ CREATE TABLE test_schema.sboms (
     component_count INTEGER,
     client_tool VARCHAR(255),
     client_tool_version VARCHAR(255),
+    created_by VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     data JSONB
 );
 ```
@@ -71,6 +73,13 @@ VALUES
 ---
 
 ## API 테스트(Swagger, Postman..)
+> 몇몇 API의 경우 OAuth2 인증 후 요청에 들어오는 헤더 및 액세스 토큰을 사용(Create Sbom(POST))
+> <br>
+> 해당 API 사용을 위해선 OAuth2 인증 후 발급받은 쿠키를 헤더에 설정해야함(Provider가 Git인 경우엔 _oauth2_proxy_git, Google인 경우엔 _oauth2_proxy 세팅, 브라우저로 인증 후 테스트 시에는 별도의 세팅 필요X)
+> <br>
+> EX) _oauth2_proxy={cookies value}, _oauth2_proxy_git={cookies value}
+> <br>
+> ![image](https://github.com/user-attachments/assets/3a8ea3da-01d8-4faa-b6a7-71941e965d90)
 
 
 ### Simple Test API
@@ -116,13 +125,20 @@ URL : http://localhost:8088/sample-api/v1/test/user/{id}
 ---
 ### SBOM API
 
-### Create Sbom(POST)
+#### Create Sbom(POST)
 
-URL : http://localhost:8088/sample-api/v1/test/managed/sbom
+> URL EX)
+> <br>
+> http://localhost:4180/sample-api/v1/test/sbom  (Google)    
+> http://localhost:4181/sample-api/v1/test/sbom  (GitHub)
 
 EX) Body
 [https://osc-korea.atlassian.net/wiki/spaces/consulting/pages/1274150926/SBOM+Generator#%EA%B0%81-%EC%96%B8%EC%96%B4%EC%9D%98-%ED%8C%8C%EC%9D%BC,%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B8%B0%EB%B0%98-SBOM](https://osc-korea.atlassian.net/wiki/spaces/consulting/pages/1279983707/SBOM#Create-Sbom(POST))
 링크에 존재하는 Syft 로 생성한 CycloneDX, SPDX Form의 json을 붙여넣은 후 Send
+
+#### Get Sbom(GET)
+
+URL : http://localhost:8088/sample-api/v1/test/sbom/{id}
 
 ---
 ## OAuth2 Proxy Test(작성중)
@@ -212,6 +228,8 @@ docker run -d --name oauth2-proxy-github \
 > Default EndPoints (version : 7.7.x)
 > <br>
 > https://oauth2-proxy.github.io/oauth2-proxy/features/endpoints/
+> <br>
+> 해당 요청들은 인증 후 발급된 액세스 토큰 및 헤더를 사용한 요청
 
 #### GET Users Email(GET)
 ##### ALL
@@ -231,13 +249,4 @@ docker run -d --name oauth2-proxy-github \
 > URL : http://localhost:4180/sample-api/v1/test/userinfo
 > <br>
 > Describe : 해당 요청은 인증 후 Upstream 서버로 전달되는 액세스 토큰을 사용한 Provider의 리소스 서버 조회 API를 사용한 사용자 정보 추출
-
-#### GET UserInfo(GET)
-##### GitHub
-
-> URL : http://localhost:4181/sample-api/v1/test/userinfoGit
-> <br>
-> Describe : 해당 요청은 인증 후 Upstream 서버로 전달되는 액세스 토큰을 사용한 Provider의 리소스 서버 조회 API를 사용한 사용자 정보 추출
-
-
 
