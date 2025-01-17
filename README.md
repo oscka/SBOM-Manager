@@ -289,7 +289,8 @@ EX) Body
 URL : http://localhost:8088/sample-api/v1/test/sbom/{uuid}
 
 > URL EX) http://localhost:8088/sample-api/v1/test/sbom/d8e6abf6-48a5-4f26-a9c0-375d30f63705
-Example Value 
+<br>
+Example Value => X
 
 ---
 ## OAuth2 Proxy Test
