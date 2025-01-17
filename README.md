@@ -49,6 +49,7 @@ CREATE TABLE test_schema.users (
 
 CREATE TABLE test_schema.sboms (
     id SERIAL PRIMARY KEY,
+    uuid UUID NOT NULL,
     bom_format VARCHAR(255),
     spec_version VARCHAR(255),
     component_type VARCHAR(255),
@@ -285,8 +286,9 @@ EX) Body
 
 #### Get Sbom(GET)
 
-URL : http://localhost:8088/sample-api/v1/test/sbom/{id}
+URL : http://localhost:8088/sample-api/v1/test/sbom/{uuid}
 
+> URL EX) http://localhost:8088/sample-api/v1/test/sbom/d8e6abf6-48a5-4f26-a9c0-375d30f63705
 Example Value 
 
 ---
