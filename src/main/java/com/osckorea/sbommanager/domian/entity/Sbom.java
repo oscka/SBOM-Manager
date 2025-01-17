@@ -5,6 +5,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Table(name = "sboms", schema = "test_schema")
 @Getter
@@ -18,6 +19,9 @@ import java.time.LocalDateTime;
 public class Sbom {
     @Id
     private Long id;
+
+    @Column("uuid")
+    private UUID uuid;
 
     private String bomFormat;
     private String specVersion;

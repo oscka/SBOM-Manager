@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -28,9 +29,9 @@ public class SbomService {
     }
 
     @Transactional
-    public SbomDTO getSbomDTO(Long id) throws IOException {
+    public SbomDTO getSbomDTO(UUID uuid) throws IOException {
 
-        Sbom sbom = sbomRepository.findById(id).orElseThrow(() -> new RuntimeException("SBOM not found"));
+        Sbom sbom = sbomRepository.findByUuid(uuid).orElseThrow(() -> new RuntimeException("SBOM not found"));
         SbomConstants.BomFormat format = sbomJsonParser.parseSbomFormat(sbom.getSbomJson());
 
         List<SbomDTO.ComponentInfo> componentInfoList;
@@ -79,6 +80,7 @@ public class SbomService {
         sbom.setCreatedAt(LocalDateTime.now());
         sbom.setSbomJson(sbomJson);
         sbom.setCreatedBy(user);
+        sbom.setUuid(UUID.randomUUID());
         return sbomRepository.save(sbom);
     }
 

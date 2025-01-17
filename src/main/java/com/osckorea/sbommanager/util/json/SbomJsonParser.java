@@ -1,6 +1,5 @@
 package com.osckorea.sbommanager.util.json;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.osckorea.sbommanager.domian.dto.SbomDTO;
@@ -23,6 +22,7 @@ public class SbomJsonParser {
     public SbomConstants.BomFormat parseSbomFormat(String jsonString) throws IOException {
         JsonNode rootNode = objectMapper.readTree(jsonString);
 
+        //다른 Json Format 추가시 리팩토링 필요
         if (rootNode.has("$schema")) {
             return SbomConstants.BomFormat.CYCLONEDX;
         } else {
@@ -61,7 +61,7 @@ public class SbomJsonParser {
         String spdxVersion = rootNode.path("spdxVersion").asText();
         sbom.setBomFormat("SPDX");
         sbom.setSpecVersion(spdxVersion.substring(spdxVersion.lastIndexOf("-") + 1));
-        sbom.setComponentType(determineComponentType(rootNode));
+        sbom.setComponentType(determineComponentType(rootNode, rootNode.path("name").asText()));
         sbom.setName(rootNode.path("name").asText());
         sbom.setComponentCount(rootNode.path("packages").size());
 
@@ -82,13 +82,18 @@ public class SbomJsonParser {
         return sbom;
     }
 
-    private String determineComponentType(JsonNode rootNode) {
+    private String determineComponentType(JsonNode rootNode, String name) {
         JsonNode packages = rootNode.path("packages");
-        if (packages.isArray() && packages.size() > 0) {
-            JsonNode firstPackage = packages.get(0);
-            String primaryPackagePurpose = firstPackage.path("primaryPackagePurpose").asText();
-            if ("CONTAINER".equals(primaryPackagePurpose)) {
-                return "container";
+        if (packages.isArray()) {
+            for (JsonNode packageNode : packages) {
+                if (name.equals(packageNode.path("name").asText())) {
+                    String primaryPackagePurpose = packageNode.path("primaryPackagePurpose").asText();
+                    if ("CONTAINER".equals(primaryPackagePurpose)) {
+                        return "container";
+                    } else {
+                        return "file";
+                    }
+                }
             }
         }
         return "file";

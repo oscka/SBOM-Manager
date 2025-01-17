@@ -1,8 +1,8 @@
 package com.osckorea.sbommanager.util.converter;
 
+import org.postgresql.util.PGobject;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.convert.WritingConverter;
-import org.postgresql.util.PGobject;
 
 import java.sql.SQLException;
 

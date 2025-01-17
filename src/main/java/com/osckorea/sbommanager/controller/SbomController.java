@@ -1,9 +1,7 @@
 package com.osckorea.sbommanager.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.osckorea.sbommanager.domian.dto.SbomDTO;
 import com.osckorea.sbommanager.domian.entity.Sbom;
-import com.osckorea.sbommanager.service.OauthService;
 import com.osckorea.sbommanager.service.SbomService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/sample-api/v1/test")
@@ -26,24 +25,24 @@ public class SbomController {
 
     @Operation(summary = "Get All SBOM", description = "모든 SBOM을 가져옵니다.")
     @GetMapping("/sbom")
-    public ResponseEntity<Iterable<Sbom>> getAllUser02() {
+    public ResponseEntity<Iterable<Sbom>> getAllUser() {
         Iterable<Sbom> sboms  = sbomService.getAllSbom();
         return ResponseEntity.ok(sboms);
+    }
+
+    @Operation(summary = "Get SBOM", description = "SBOM(분석) 조회")
+    @GetMapping("/sbom/{uuid}")
+    public ResponseEntity<SbomDTO> getSbom(@PathVariable("uuid") UUID uuid) throws IOException {
+        SbomDTO sbom = sbomService.getSbomDTO(uuid);
+
+        return ResponseEntity.ok(sbom);
     }
 
     @Operation(summary = "SBOM Create", description = "SBOM을 저장합니다(사용자 ID 저장을 위한 Oauth2 인증 필수).")
     @PostMapping("/sbom")
     public ResponseEntity<Sbom> createUser(@RequestBody String sbomJson, @RequestHeader("X-Forwarded-Email") String user) throws Exception {
         Sbom createdSbom = sbomService.createSbom(sbomJson, user);
-        return new ResponseEntity<>(createdSbom, HttpStatus.CREATED);
-    }
-
-    @Operation(summary = "Get SBOM", description = "SBOM(분석) 조회")
-    @GetMapping("/sbom/{id}")
-    public ResponseEntity<SbomDTO> getSbom(@PathVariable("id") Long id) throws IOException {
-        SbomDTO sbom = sbomService.getSbomDTO(id);
-
-        return ResponseEntity.ok(sbom);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdSbom);
     }
 
 }
