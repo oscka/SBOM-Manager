@@ -4,7 +4,7 @@
 
 ## 주요 기능
 1. SBOM 관리:
-- 생성된 SBOM JSON을 데이터베이스에 저장
+- 생성된 SBOM JSON(Syft 기반의 CycloneDX, SPDX 모두 지원)을 데이터베이스에 저장
 - SBOM 데이터 조회 및 검색
 2. OAuth2 프록시 통합:
 - OAuth2 프록시 서버와 연동
