@@ -1,8 +1,8 @@
 # SBOM-Manager
 
-템플릿 코드 테스트를 위한 PostgreSQL DB 컨테이너 생성 및 초기화 방법
+## PostgreSQL DB 컨테이너 생성 및 초기화 방법
 
--- 1. 도커 이미지 Pull 및 컨테이너 생성
+### 1. 도커 이미지 Pull 및 컨테이너 생성
 ```
 docker pull postgres:16.2
 docker run -d \
@@ -14,27 +14,27 @@ docker run -d \
     postgres:16.2
 ```
 
--- 2. PostgreSQL 접속 후 DB 생성
+### 2. PostgreSQL 접속 후 DB 생성
 ```
 docker exec -it postgres-db /bin/sh
 psql -U postgres
 CREATE DATABASE test_spring;
 ```
 
--- 3. 사용자 생성 및 권한 부여
+### 3. 사용자 생성 및 권한 부여
 ```
 CREATE USER test WITH PASSWORD '1234';
 ALTER USER test WITH SUPERUSER;
 ```
 
--- 4. 생성한 DB로 접속 후 스키마 생성
+### 4. 생성한 DB로 접속 후 스키마 생성
 ```
 exit
 psql -U test -d test_spring -W
 CREATE SCHEMA test_schema;
 ```
 
--- 5. 생성한 스키마에 테이블 생성
+### 5. 생성한 스키마에 테이블 생성
 ```
 CREATE TABLE test_schema.users (
     id SERIAL PRIMARY KEY,
@@ -62,7 +62,7 @@ CREATE TABLE test_schema.sboms (
 );
 ```
 
--- 6. 생성한 테이블에 테스트 데이터 삽입
+### 6. 생성한 테이블에 테스트 데이터 삽입
 ```
 INSERT INTO test_schema.users (username, email, password, full_name, phone) 
 VALUES 
@@ -72,84 +72,13 @@ VALUES
 ```
 ---
 
-## API 테스트(Swagger, Postman..)
-> 몇몇 API의 경우 OAuth2 인증 후 요청에 들어오는 헤더 및 액세스 토큰을 사용(Create Sbom(POST))
-> <br>
-> 해당 API 사용을 위해선 OAuth2 인증 후 발급받은 쿠키를 헤더에 설정해야함(Provider가 Git인 경우엔 _oauth2_proxy_git, Google인 경우엔 _oauth2_proxy 세팅, 브라우저로 인증 후 테스트 시에는 별도의 세팅 필요X)
-> <br>
-> EX) _oauth2_proxy={cookies value}, _oauth2_proxy_git={cookies value}
-> <br>
-> ![image](https://github.com/user-attachments/assets/3a8ea3da-01d8-4faa-b6a7-71941e965d90)
-
-
-### Simple Test API
-
-#### GET ALL User(GET)
-
-URL : http://localhost:8088/sample-api/v1/test/user
-
-#### Create User(POST)
-
-URL : http://localhost:8088/sample-api/v1/test/user
-
-EX) Body
-```
-{
-"username": "lo123_wilson",
-"email": "lo123@example.com",
-"password": "password73211",
-"fullName": "Lo123 Wilson",
-"phone": "010-9234-8448",
-"isActive": true
-}
-```
-#### Edit User(PUT)
-
-URL : http://localhost:8088/sample-api/v1/test/user/{id}
-
-EX) Body 
-```
-{
-"username": "lol_wilson",
-"email": "lol@example.com",
-"password": "password78922",
-"fullName": "Lol Wilson",
-"phone": "010-9234-7777",
-"isActive": true
-}
-```
-#### Delete User(DELETE)
-
-URL : http://localhost:8088/sample-api/v1/test/user/{id}
-
----
-### SBOM API
-
-#### Create Sbom(POST)
-
-> URL EX)
-> <br>
-> http://localhost:4180/sample-api/v1/test/sbom  (Google)    
-> http://localhost:4181/sample-api/v1/test/sbom  (GitHub)
-
-EX) Body
-[https://osc-korea.atlassian.net/wiki/spaces/consulting/pages/1274150926/SBOM+Generator#%EA%B0%81-%EC%96%B8%EC%96%B4%EC%9D%98-%ED%8C%8C%EC%9D%BC,%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B8%B0%EB%B0%98-SBOM](https://osc-korea.atlassian.net/wiki/spaces/consulting/pages/1279983707/SBOM#Create-Sbom(POST))
-링크에 존재하는 Syft 로 생성한 CycloneDX, SPDX Form의 json을 붙여넣은 후 Send
-
-#### Get Sbom(GET)
-
-URL : http://localhost:8088/sample-api/v1/test/sbom/{id}
-
----
-## OAuth2 Proxy Test(작성중)
-
-### OAuth 2.0 - Client 등록(Google, Github)
-#### Google
-1. OAuth 동의 화면 구성 요약 (링크 참조)
+## OAuth 2.0 - Client 등록(Google, Github)
+### Google
+#### 1. OAuth 동의 화면 구성 요약 (링크 참조)
 
 ![Google EX 02](https://github.com/user-attachments/assets/19d58fed-3e59-4bc5-aa2f-3c08588c7ca9)
 
-2. OAuth Client ID 만들기
+#### 2. OAuth Client ID 만들기
 
 ![Google EX](https://github.com/user-attachments/assets/57ac04f4-9805-43e0-a8a6-2088c0111af3)
 
@@ -157,8 +86,8 @@ URL : http://localhost:8088/sample-api/v1/test/sbom/{id}
 > EX) http://localhost:4180/oauth2/callback
 <br>
 
-#### GitHub
-OAuth App 구성 예시
+### GitHub
+#### OAuth App 구성 예시
 
 ![Git EX](https://github.com/user-attachments/assets/7bb06862-8349-4a61-b41a-58d075fc52df)
 
@@ -179,6 +108,35 @@ docker pull quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
 ```
 #### Container Run 
 ##### Google
+
+> OAUTH2_PROXY_CLIENT_ID, OAUTH2_PROXY_CLIENT_SECRET : Client 등록 후 발급 받은 Key 입력
+> <br>
+> OAUTH2_PROXY_COOKIE_SECRE : 인증 후 사용될 쿠키의 Secret Key
+> <br>
+> OAUTH2_PROXY_PROVIDER : Oauth2 Provider 명시
+> <br>
+> OAUTH2_PROXY_EMAIL_DOMAINS : 허용할 이메일 도메인
+> <br>
+> OAUTH2_PROXY_UPSTREAMS : 프록시할 업스트림 서버 지정
+> <br>
+> OAUTH2_PROXY_COOKIE_SECURE : 쿠키 보안 비활성화
+> <br>
+> OAUTH2_PROXY_REVERSE_PROXY : 리버스 프록시 모드 활성화
+> <br>
+> OAUTH2_PROXY_HTTP_ADDRESS : Oauth2 Proxy가 Listening 할 주소와 포트
+> <br>
+> OAUTH2_PROXY_REDIRECT_URL : Oauth2 콜백 URL
+> <br>
+> OAUTH2_PROXY_LOGGING_LEVEL : Loggin Level 설정
+> <br>
+> OAUTH2_PROXY_SET_XAUTHREQUEST : X-Auth-Request-User와 X-Auth-Request-Email 헤더 설정을 추가
+> <br>
+> OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER : Authorization 헤더를 업스트림 서버로 전달
+> <br>
+> OAUTH2_PROXY_PASS_USER_HEADERS : 사용자 관련 헤더를 업스트림 서버로 전달
+> <br>
+> OAUTH2_PROXY_PASS_ACCESS_TOKEN : 리소스 서버에 접근하기 위한 액세스 토큰을 업스트림 서버로 전달 (중요)
+
 ```
 docker run -d --name oauth2-proxy \
   -p 4180:4180 \
@@ -222,6 +180,118 @@ docker run -d --name oauth2-proxy-github \
   -e OAUTH2_PROXY_COOKIE_NAME=_oauth2_proxy_git \
   quay.io/oauth2-proxy/oauth2-proxy:v7.7.1
 ```
+---
+
+## API Test(Swagger, Postman..)
+
+> 몇몇 API의 경우 OAuth2 인증 후 요청에 들어오는 헤더 및 액세스 토큰을 사용(EX : Create Sbom(POST))
+> <br>
+> 해당 API 사용을 위해선 OAuth2 인증 후 발급받은 쿠키를 헤더에 설정해야함(Provider가 Git인 경우엔 _oauth2_proxy_git, Google인 경우엔 _oauth2_proxy 세팅, 브라우저로 인증 후 테스트 시에는 별도의 세팅 필요X)
+> <br>
+> EX) _oauth2_proxy={cookies value}, _oauth2_proxy_git={cookies value}
+> <br>
+> ![image](https://github.com/user-attachments/assets/3a8ea3da-01d8-4faa-b6a7-71941e965d90)
+
+### Simple Template API Test
+
+#### GET ALL User(GET)
+
+URL : http://localhost:8088/sample-api/v1/test/user
+
+Example Value => X
+
+#### Create User(POST)
+
+URL : http://localhost:8088/sample-api/v1/test/user
+
+Example Value
+```
+{
+  "username": "string",
+  "email": "string",
+  "password": "string",
+  "fullName": "string",
+  "phone": "string",
+  "isActive": true,
+}
+```
+
+EX) Body
+```
+{
+"username": "lo123_wilson",
+"email": "lo123@example.com",
+"password": "password73211",
+"fullName": "Lo123 Wilson",
+"phone": "010-9234-8448",
+"isActive": true
+}
+```
+#### Edit User(PUT)
+
+URL : http://localhost:8088/sample-api/v1/test/user/{id}
+
+Example Value
+```
+{
+  "username": "string",
+  "email": "string",
+  "password": "string",
+  "fullName": "string",
+  "phone": "string",
+  "isActive": true,
+}
+```
+
+EX) Body 
+```
+{
+"username": "lol_wilson",
+"email": "lol@example.com",
+"password": "password78922",
+"fullName": "Lol Wilson",
+"phone": "010-9234-7777",
+"isActive": true
+}
+```
+#### Delete User(DELETE)
+
+URL : http://localhost:8088/sample-api/v1/test/user/{id}
+
+Example Value 
+
+---
+### SBOM API
+
+#### Create Sbom(POST)
+
+> URL EX)
+> <br>
+> http://localhost:4180/sample-api/v1/test/sbom  (Google)    
+> http://localhost:4181/sample-api/v1/test/sbom  (GitHub)
+
+Required Header
+```
+Key 1   : X-Forwarded-Email => Oauth2 Login을 통해 확인 가능
+Value 1 : Oauth2 Login으로 request에 세팅된 X-Forwarded-Email
+```
+
+EX) Body
+```
+하기 링크에 존재하는 Syft 로 생성한 CycloneDX, SPDX Form의 json 파일
+
+[https://osc-korea.atlassian.net/wiki/spaces/consulting/pages/1274150926/SBOM+Generator#%EA%B0%81-%EC%96%B8%EC%96%B4%EC%9D%98-%ED%8C%8C%EC%9D%BC,%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B8%B0%EB%B0%98-SBOM](https://osc-korea.atlassian.net/wiki/spaces/consulting/pages/1279983707/SBOM#Create-Sbom(POST))
+```
+
+#### Get Sbom(GET)
+
+URL : http://localhost:8088/sample-api/v1/test/sbom/{id}
+
+Example Value 
+
+---
+## OAuth2 Proxy Test
+> OAuth2 Proxy API는 브라우저로 테스트 시 별도의 Header 세팅 불필요
 
 ### Test Upstream Server APIs Through a Proxy Server
 
@@ -229,24 +299,40 @@ docker run -d --name oauth2-proxy-github \
 > <br>
 > https://oauth2-proxy.github.io/oauth2-proxy/features/endpoints/
 > <br>
-> 해당 요청들은 인증 후 발급된 액세스 토큰 및 헤더를 사용한 요청
+> 해당 요청들은 Oauth2-Proxy 서버에서 기본적으로 사용 가능한 API이다.
 
 #### GET Users Email(GET)
-##### ALL
+##### Google, Github 
+URL : http://localhost:{Proxy Server URL}/sample-api/v1/test/email
 
-> URL : http://localhost:{Proxy Server URL}/sample-api/v1/test/email
-> <br>
+Required Header
+```
+Key 1   : X-Forwarded-Email => Oauth2 Login을 통해 확인 가능
+Value 1 : Oauth2 Login으로 request에 세팅된 X-Forwarded-Email
+```
+
 > EX)
 > <br>
 > http://localhost:4180/sample-api/v1/test/email  (Google)    
 > http://localhost:4181/sample-api/v1/test/email  (GitHub)
 > <br>
-> Describe : 해당 요청은 인증 후 Upstream 서버로 전달되는 OICD 토큰 및 헤더 정보를 통해 추출
+> Describe : 해당 요청은 인증 후 Upstream 서버로 전달되는 OICD 토큰 및 헤더 정보를 통해 이메일을 응답해주는 API이다.
 
 #### GET UserInfo(GET)
-##### Google
+##### Google, GitHub
 
-> URL : http://localhost:4180/sample-api/v1/test/userinfo
+URL : http://localhost:{Proxy Server URL}/sample-api/v1/test/userinfo
+
+Required Header
+```
+Key 1   : Cookie => Oauth2 Login을 통해 확인 가능
+Value 1 : Oauth2 Login시 개발자 도구에서 확인된 쿠키
+GitHub Cookie EX : _oauth2_proxy=g1PiJ..........
+Google Cookie EX : _oauth2_proxy_git=_gYHRBg.........
+```
+> EX)
 > <br>
-> Describe : 해당 요청은 인증 후 Upstream 서버로 전달되는 액세스 토큰을 사용한 Provider의 리소스 서버 조회 API를 사용한 사용자 정보 추출
+> http://localhost:4180/sample-api/v1/test/userinfo  (Google)    
+> http://localhost:4181/sample-api/v1/test/userinfo  (GitHub)
+> Describe : 해당 요청은 인증 후 Upstream 서버로 전달되는 액세스 토큰을 사용한 Provider의 리소스 서버 조회 API를 사용한 사용자 정보 추출 API이다.
 
