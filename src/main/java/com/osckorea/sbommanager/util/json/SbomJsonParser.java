@@ -147,4 +147,34 @@ public class SbomJsonParser {
         return componentInfos;
     }
 
+    public List<List<String>> extractCpeList(String sbomJson) throws IOException {
+        List<List<String>> allCpeList = new ArrayList<>();
+        JsonNode rootNode = objectMapper.readTree(sbomJson);
+        JsonNode componentsNode = rootNode.path("components");
+
+        for (JsonNode component : componentsNode) {
+            List<String> componentCpes = new ArrayList<>();
+
+            // 대표 CPE 추출
+            String representativeCpe = component.path("cpe").asText();
+            if (!representativeCpe.isEmpty()) {
+                componentCpes.add(representativeCpe);
+            }
+
+            // 변형 CPE 추출
+            JsonNode propertiesNode = component.path("properties");
+            for (JsonNode property : propertiesNode) {
+                if (property.path("name").asText().startsWith("syft:cpe23")) {
+                    componentCpes.add(property.path("value").asText());
+                }
+            }
+
+            if (!componentCpes.isEmpty()) {
+                allCpeList.add(componentCpes);
+            }
+        }
+
+        return allCpeList;
+    }
+
 }

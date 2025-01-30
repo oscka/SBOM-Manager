@@ -1,6 +1,7 @@
 package com.osckorea.sbommanager.controller;
 
 import com.osckorea.sbommanager.domian.dto.SbomDTO;
+import com.osckorea.sbommanager.domian.dto.SbomVulnDTO;
 import com.osckorea.sbommanager.domian.entity.Sbom;
 import com.osckorea.sbommanager.service.SbomService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,6 +44,14 @@ public class SbomController {
     public ResponseEntity<Sbom> createUser(@RequestBody String sbomJson, @RequestHeader("X-Forwarded-Email") String user) throws Exception {
         Sbom createdSbom = sbomService.createSbom(sbomJson, user);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdSbom);
+    }
+
+    @Operation(summary = "Get Vuln SBOM", description = "SBOM 취약점(분석) 조회")
+    @GetMapping("/sbom/vuln/{uuid}")
+    public ResponseEntity<SbomVulnDTO> getSbomVuln(@PathVariable("uuid") UUID uuid) throws IOException {
+        SbomVulnDTO sbom = sbomService.getSbomVulnDTO(uuid);
+
+        return ResponseEntity.ok(sbom);
     }
 
 }
