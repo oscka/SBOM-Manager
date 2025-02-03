@@ -1,1 +1,1 @@
-# SBOM-Manager
+# SBOMgr
