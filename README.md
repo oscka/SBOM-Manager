@@ -1,4 +1,4 @@
-# SBOM-Manager
+# SBOMgr
 
 > 이 Spring Boot 프로젝트는 소프트웨어 자재 명세서(SBOM) 관리 기능과 OAuth2 프록시 서버와의 통합을 통해 사용자 정보에 안전하게 접근하는 기능을 제공합니다.
 
