@@ -14,18 +14,18 @@ public class SbomVulnDTO {
     // 프로젝트 이름
     private String name;
     // 발견된 cve 갯수
-    private int vulnCount;
+    private int vulnComponentCount;
 
-    private int componentCount;
+    private int allComponentCount;
     // cve가 발견된 컴포넌트 및 cve 정보
     private List<VulnComponentInfo> vulncomponentInfoList;
 
     @Builder
-    public SbomVulnDTO(String name,int vulnCount, int vulnComponentCount, int componentCount,
+    public SbomVulnDTO(String name, int vulnComponentCount, int allComponentCount,
                    List<SbomVulnDTO.VulnComponentInfo> vulncomponentInfoList) {
         this.name = name;
-        this.vulnCount = vulnCount;
-        this.componentCount = componentCount;
+        this.vulnComponentCount = vulnComponentCount;
+        this.allComponentCount = allComponentCount;
         this.vulncomponentInfoList = vulncomponentInfoList;
     }
 
@@ -34,7 +34,7 @@ public class SbomVulnDTO {
     public static class VulnComponentInfo {
         // 컴포넌트 이름 => cve에 해당된 cpe 이름을 파싱해 진행 (버전도 포함)
 
-        private String bomRef;
+        private String componentName;
 
         private String cveName;
 
@@ -54,7 +54,7 @@ public class SbomVulnDTO {
 
         @Builder
         public VulnComponentInfo(String cveName, String description, String problemType, String referencesJson, String impactJson, String referenceSite,
-                                 List<String> cpe, String bomRef, List<String> licenseInfo) {
+                                 List<String> cpe, String componentName, List<String> licenseInfo) {
             this.cveName = cveName;
             this.description = description;
             this.problemType = problemType;
@@ -62,7 +62,7 @@ public class SbomVulnDTO {
             this.impactJson = impactJson;
             this.referenceSite = referenceSite;
             this.cpe = cpe;
-            this.bomRef = bomRef;
+            this.componentName = componentName;
             this.licenseInfo = licenseInfo;
         }
 
@@ -76,7 +76,7 @@ public class SbomVulnDTO {
                     Objects.equals(problemType, that.problemType) &&
                     Objects.equals(referencesJson, that.referencesJson) &&
                     Objects.equals(impactJson, that.impactJson) &&
-                    Objects.equals(bomRef, that.bomRef) &&
+                    Objects.equals(componentName, that.componentName) &&
                     Objects.equals(licenseInfo, that.licenseInfo) &&
                     Objects.equals(cpe, that.cpe) &&
                     Objects.equals(referenceSite, that.referenceSite);

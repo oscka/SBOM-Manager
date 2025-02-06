@@ -95,9 +95,6 @@ public class SbomService {
         // componentCpesLicenseInfo에는 각 컴포넌트의 cpe들과 license 정보가 들어가있음
         List<SbomDTO.ComponentCpesLicenseInfo> componentInfoList = sbomJsonParser.componentInfosParseForVuln(sbom.getSbomJson());
 
-        // sbom json 의 cpe 정보 파싱 작업 시작
-        List<List<String>> cpeList = sbomJsonParser.extractCpeList(sbom.getSbomJson());
-
         List<SbomVulnDTO.VulnComponentInfo> vulnComponentInfoList = new ArrayList<>();
 
         int vulnCount = 0;
@@ -128,8 +125,8 @@ public class SbomService {
 
         SbomVulnDTO sbomVulnDto = SbomVulnDTO.builder()
                 .name(sbom.getName())
-                .vulnCount(vulnCount)
-                .componentCount(sbom.getComponentCount())
+                .vulnComponentCount(vulnCount)
+                .allComponentCount(sbom.getComponentCount())
                 .vulncomponentInfoList(vulnComponentInfoList)
                 .build();
 
@@ -269,7 +266,7 @@ public class SbomService {
                         .referencesJson(item.getReferencesJson())
                         .impactJson(item.getImpactJson())
                         .referenceSite(item.getReferenceSite())
-                        .bomRef(extractedComponentName(bomRef))
+                        .componentName(extractedComponentName(bomRef))
                         .licenseInfo(licenseInfo)
                         .build();
                 componentInfoList.add(vulnInfo);
@@ -283,7 +280,7 @@ public class SbomService {
                         .referencesJson(item.getReferencesJson())
                         .impactJson(item.getImpactJson())
                         .referenceSite(item.getReferenceSite())
-                        .bomRef(extractedComponentName(bomRef))
+                        .componentName(extractedComponentName(bomRef))
                         .licenseInfo(licenseInfo)
                         .build();
                 componentInfoList.add(vulnInfo);
