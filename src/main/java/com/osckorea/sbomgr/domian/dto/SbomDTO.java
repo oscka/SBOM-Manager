@@ -3,6 +3,8 @@ package com.osckorea.sbomgr.domian.dto;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -33,17 +35,19 @@ public class SbomDTO{
 
     @Getter
     @NoArgsConstructor
+    @SuperBuilder
     public static class ComponentInfo {
-        private String id;
+        private String bomRef;
         private String name;
         private String version;
+    }
 
-        @Builder
-        public ComponentInfo(String name, String version, String id) {
-            this.id = id;
-            this.name = name;
-            this.version = version;
-        }
+    @Getter
+    @NoArgsConstructor
+    @SuperBuilder
+    public static class ComponentCpesLicenseInfo extends ComponentInfo {
+        private List<String> cpes;
+        private List<String> licenses;
     }
 }
 

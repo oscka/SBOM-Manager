@@ -34,6 +34,8 @@ public class SbomVulnDTO {
     public static class VulnComponentInfo {
         // 컴포넌트 이름 => cve에 해당된 cpe 이름을 파싱해 진행 (버전도 포함)
 
+        private String bomRef;
+
         private String cveName;
 
         private List<String> cpe;
@@ -48,8 +50,11 @@ public class SbomVulnDTO {
 
         private String referenceSite;
 
+        private List<String> licenseInfo;
+
         @Builder
-        public VulnComponentInfo(String cveName, String description, String problemType, String referencesJson, String impactJson, String referenceSite, List<String> cpe) {
+        public VulnComponentInfo(String cveName, String description, String problemType, String referencesJson, String impactJson, String referenceSite,
+                                 List<String> cpe, String bomRef, List<String> licenseInfo) {
             this.cveName = cveName;
             this.description = description;
             this.problemType = problemType;
@@ -57,6 +62,8 @@ public class SbomVulnDTO {
             this.impactJson = impactJson;
             this.referenceSite = referenceSite;
             this.cpe = cpe;
+            this.bomRef = bomRef;
+            this.licenseInfo = licenseInfo;
         }
 
         @Override
@@ -67,6 +74,11 @@ public class SbomVulnDTO {
             return Objects.equals(cveName, that.cveName) &&
                     Objects.equals(description, that.description) &&
                     Objects.equals(problemType, that.problemType) &&
+                    Objects.equals(referencesJson, that.referencesJson) &&
+                    Objects.equals(impactJson, that.impactJson) &&
+                    Objects.equals(bomRef, that.bomRef) &&
+                    Objects.equals(licenseInfo, that.licenseInfo) &&
+                    Objects.equals(cpe, that.cpe) &&
                     Objects.equals(referenceSite, that.referenceSite);
         }
 
@@ -75,5 +87,4 @@ public class SbomVulnDTO {
             return Objects.hash(cveName, description, problemType, referenceSite);
         }
     }
-
 }

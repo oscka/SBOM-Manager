@@ -3,6 +3,7 @@ package com.osckorea.sbomgr.util.json;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.osckorea.sbomgr.domian.dto.SbomDTO;
+import com.osckorea.sbomgr.domian.dto.SbomVulnDTO;
 import com.osckorea.sbomgr.domian.entity.Sbom;
 import com.osckorea.sbomgr.domian.enums.SbomConstants;
 import lombok.RequiredArgsConstructor;
@@ -108,12 +109,70 @@ public class SbomJsonParser {
             for (JsonNode componentNode : componentsNode) {
                 String name = componentNode.get("name").asText();
                 String version = componentNode.get("version").asText();
-                String id = componentNode.get("bom-ref").asText();
+                String bomRef = componentNode.get("bom-ref").asText();
 
                 SbomDTO.ComponentInfo componentInfo = SbomDTO.ComponentInfo.builder()
                         .name(name)
                         .version(version)
-                        .id(id)
+                        .bomRef(bomRef)
+                        .build();
+
+                componentInfos.add(componentInfo);
+            }
+        }
+
+        return componentInfos;
+    }
+
+    public List<SbomDTO.ComponentCpesLicenseInfo> componentInfosParseForVuln(String jsonData) throws IOException {
+        JsonNode componentsNode = objectMapper.readTree(jsonData).get("components");
+
+        List<SbomDTO.ComponentCpesLicenseInfo> componentInfos = new ArrayList<>();
+
+        if (componentsNode != null && componentsNode.isArray()) {
+            for (JsonNode componentNode : componentsNode) {
+                String name = componentNode.get("name").asText();
+                String version = componentNode.get("version").asText();
+                String bomRef = componentNode.get("bom-ref").asText();
+                String mainCpe = componentNode.path("cpe").isNull()
+                        ? null
+                        : componentNode.path("cpe").asText();
+
+                List<String> cpes = new ArrayList<>();
+                if (!mainCpe.isEmpty()){
+                    cpes.add(mainCpe);
+
+                    JsonNode propertiesNode = componentNode.get("properties");
+                    if (propertiesNode != null && propertiesNode.isArray()) {
+                        for (JsonNode propertyNode : propertiesNode) {
+                            if ("syft:cpe23".equals(propertyNode.get("name").asText())) {
+                                cpes.add(propertyNode.get("value").asText());
+                            }
+                        }
+                    }
+                }
+
+                List<String> licenses = new ArrayList<>();
+                JsonNode licensesNode = componentNode.path("licenses");
+                if (licensesNode.isArray()) {
+                    for (JsonNode licenseNode : licensesNode) {
+                        JsonNode licenseInfo = licenseNode.path("license");
+                        String licenseId = licenseInfo.path("id").asText();
+                        String licenseName = licenseInfo.path("name").asText();
+                        if (!licenseId.isEmpty()) {
+                            licenses.add(licenseId);
+                        } else if (!licenseName.isEmpty()) {
+                            licenses.add(licenseName);
+                        }
+                    }
+                }
+
+                SbomDTO.ComponentCpesLicenseInfo componentInfo = SbomDTO.ComponentCpesLicenseInfo.builder()
+                        .name(name)
+                        .version(version)
+                        .bomRef(bomRef)
+                        .cpes(cpes)
+                        .licenses(licenses)
                         .build();
 
                 componentInfos.add(componentInfo);
@@ -132,12 +191,12 @@ public class SbomJsonParser {
             for (JsonNode componentNode : componentsNode) {
                 String name = componentNode.get("name").asText();
                 String version = componentNode.get("versionInfo").asText();
-                String id = componentNode.get("SPDXID").asText();
+                String bomRef = componentNode.get("SPDXID").asText();
 
                 SbomDTO.ComponentInfo componentInfo = SbomDTO.ComponentInfo.builder()
                         .name(name)
                         .version(version)
-                        .id(id)
+                        .bomRef(bomRef)
                         .build();
 
                 componentInfos.add(componentInfo);
