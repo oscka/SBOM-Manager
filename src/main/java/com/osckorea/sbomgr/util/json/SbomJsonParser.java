@@ -2,16 +2,19 @@ package com.osckorea.sbomgr.util.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.osckorea.sbomgr.domian.dto.SbomDTO;
 import com.osckorea.sbomgr.domian.dto.SbomVulnDTO;
 import com.osckorea.sbomgr.domian.entity.Sbom;
 import com.osckorea.sbomgr.domian.enums.SbomConstants;
+import com.osckorea.sbomgr.service.SbomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Component
@@ -19,6 +22,8 @@ import java.util.List;
 public class SbomJsonParser {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
+    private final LoadingCache<String, CpeParts> cpeCache;
+
 
     public SbomConstants.BomFormat parseSbomFormat(String jsonString) throws IOException {
         JsonNode rootNode = objectMapper.readTree(jsonString);
@@ -234,6 +239,104 @@ public class SbomJsonParser {
         }
 
         return allCpeList;
+    }
+
+    public static boolean isInRange(String version, String startIncl, String endExcl) {
+        // 실제 버전 비교 로직 구현 예시
+        if (startIncl != null && !startIncl.isEmpty()) {
+            if (version.compareTo(startIncl) < 0) return false;
+        }
+        if (endExcl != null && !endExcl.isEmpty()) {
+            if (version.compareTo(endExcl) >= 0) return false;
+        }
+        return true;
+    }
+
+    public List<SbomDTO.ComponentCpesLicenseInfoV2> componentInfosParseForVulnV2(String jsonData) throws IOException {
+        JsonNode componentsNode = objectMapper.readTree(jsonData).get("components");
+
+        List<SbomDTO.ComponentCpesLicenseInfoV2> componentInfos = new ArrayList<>();
+
+        if (componentsNode != null && componentsNode.isArray()) {
+            for (JsonNode componentNode : componentsNode) {
+                String name = componentNode.get("name").asText();
+                String version = componentNode.get("version").asText();
+                String bomRef = componentNode.get("bom-ref").asText();
+                String mainCpe = componentNode.path("cpe").isNull()
+                        ? null
+                        : componentNode.path("cpe").asText();
+
+                List<SbomDTO.cpeForm> cpes = new ArrayList<>();
+                if (!mainCpe.isEmpty()){
+
+                    CpeParts mainCpeParts = cpeCache.get(mainCpe);
+                    SbomDTO.cpeForm mainForm = new SbomDTO.cpeForm(mainCpeParts.full(), mainCpeParts.base(), mainCpeParts.version());
+                    cpes.add(mainForm);
+
+                    JsonNode propertiesNode = componentNode.get("properties");
+                    if (propertiesNode != null && propertiesNode.isArray()) {
+                        for (JsonNode propertyNode : propertiesNode) {
+                            if ("syft:cpe23".equals(propertyNode.get("name").asText())) {
+                                String propertyCpe = propertyNode.get("value").asText();
+                                CpeParts propertyCpeParts = cpeCache.get(propertyCpe);
+                                SbomDTO.cpeForm propertyForm = new SbomDTO.cpeForm(
+                                        propertyCpeParts.full(),
+                                        propertyCpeParts.base(),
+                                        propertyCpeParts.version());
+                                cpes.add(propertyForm);
+                            }
+                        }
+                    }
+                }
+
+                List<String> licenses = new ArrayList<>();
+                JsonNode licensesNode = componentNode.path("licenses");
+                if (licensesNode.isArray()) {
+                    for (JsonNode licenseNode : licensesNode) {
+                        JsonNode licenseInfo = licenseNode.path("license");
+                        String licenseId = licenseInfo.path("id").asText();
+                        String licenseName = licenseInfo.path("name").asText();
+                        if (!licenseId.isEmpty()) {
+                            licenses.add(licenseId);
+                        } else if (!licenseName.isEmpty()) {
+                            licenses.add(licenseName);
+                        }
+                    }
+                }
+
+                SbomDTO.ComponentCpesLicenseInfoV2 componentInfo = SbomDTO.ComponentCpesLicenseInfoV2.builder()
+                        .name(name)
+                        .version(version)
+                        .bomRef(bomRef)
+                        .cpes(cpes)
+                        .licenses(licenses)
+                        .build();
+
+                componentInfos.add(componentInfo);
+            }
+        }
+
+        return componentInfos;
+    }
+
+    // CpeParts 레코드: 입력된 CPE 문자열을 파싱하여 full, base, version 정보를 보관
+    public static record CpeParts(String full, String base, String version) {
+        public static CpeParts parse(String cpe) {
+            String[] parts = cpe.split(":");
+            if (parts.length < 6) {
+                throw new IllegalArgumentException("Invalid CPE format: " + cpe);
+            }
+            String allCpe = cpe;
+            // base: 6번째 필드(버전)를 와일드카드(*)로 대체
+            String base = String.join(":", Arrays.copyOf(parts, 5)) + ":*:" +
+                    String.join(":", Arrays.copyOfRange(parts, 6, parts.length));
+            String version = parts[5];
+            return new CpeParts(allCpe, base, version);
+        }
+    }
+
+    public SbomJsonParser.CpeParts parseCpe(String cpe) { // 반드시 public으로 선언
+        return SbomJsonParser.CpeParts.parse(cpe);
     }
 
 }

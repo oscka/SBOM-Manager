@@ -1,0 +1,45 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.4.1)
+
+2025-02-13T07:20:27.753+09:00  INFO 15072 --- [sbomgr] [           main] com.osckorea.sbomgr.SbomgrApplication    : Starting SbomgrApplication using Java 17.0.11 with PID 15072 (C:\oscGit\SBOMgr\out\production\classes started by admin in C:\oscGit\SBOMgr)
+2025-02-13T07:20:27.757+09:00  INFO 15072 --- [sbomgr] [           main] com.osckorea.sbomgr.SbomgrApplication    : No active profile set, falling back to 1 default profile: "default"
+2025-02-13T07:20:29.450+09:00  INFO 15072 --- [sbomgr] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JDBC repositories in DEFAULT mode.
+2025-02-13T07:20:29.510+09:00  INFO 15072 --- [sbomgr] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 50 ms. Found 2 JDBC repository interfaces.
+2025-02-13T07:20:30.326+09:00  INFO 15072 --- [sbomgr] [           main] o.s.cloud.context.scope.GenericScope     : BeanFactory id=4b5b6787-fc6e-3be9-9ea9-86f1c89a35b6
+2025-02-13T07:20:31.505+09:00  INFO 15072 --- [sbomgr] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8088 (http)
+2025-02-13T07:20:31.518+09:00  INFO 15072 --- [sbomgr] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-02-13T07:20:31.518+09:00  INFO 15072 --- [sbomgr] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.34]
+2025-02-13T07:20:31.616+09:00  INFO 15072 --- [sbomgr] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-02-13T07:20:31.616+09:00  INFO 15072 --- [sbomgr] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 3739 ms
+2025-02-13T07:20:33.097+09:00  INFO 15072 --- [sbomgr] [           main] com.zaxxer.hikari.HikariDataSource       : hikari-cp - Starting...
+2025-02-13T07:20:33.491+09:00  INFO 15072 --- [sbomgr] [           main] com.zaxxer.hikari.pool.HikariPool        : hikari-cp - Added connection org.postgresql.jdbc.PgConnection@1a497286
+2025-02-13T07:20:33.500+09:00  INFO 15072 --- [sbomgr] [           main] com.zaxxer.hikari.HikariDataSource       : hikari-cp - Start completed.
+2025-02-13T07:20:34.425+09:00  WARN 15072 --- [sbomgr] [           main] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'sbomController' defined in file [C:\oscGit\SBOMgr\out\production\classes\com\osckorea\sbomgr\controller\SbomController.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'sbomService' defined in file [C:\oscGit\SBOMgr\out\production\classes\com\osckorea\sbomgr\service\SbomService.class]: Unsatisfied dependency expressed through constructor parameter 1: Error creating bean with name 'sbomJsonParser' defined in file [C:\oscGit\SBOMgr\out\production\classes\com\osckorea\sbomgr\util\json\SbomJsonParser.class]: Unsatisfied dependency expressed through constructor parameter 0: No qualifying bean of type 'com.github.benmanes.caffeine.cache.LoadingCache<java.lang.String, com.osckorea.sbomgr.util.json.SbomJsonParser$CpeParts>' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}
+2025-02-13T07:20:34.425+09:00  INFO 15072 --- [sbomgr] [           main] com.zaxxer.hikari.HikariDataSource       : hikari-cp - Shutdown initiated...
+2025-02-13T07:20:34.432+09:00  INFO 15072 --- [sbomgr] [           main] com.zaxxer.hikari.HikariDataSource       : hikari-cp - Shutdown completed.
+2025-02-13T07:20:34.439+09:00  INFO 15072 --- [sbomgr] [           main] o.apache.catalina.core.StandardService   : Stopping service [Tomcat]
+2025-02-13T07:20:34.449+09:00  INFO 15072 --- [sbomgr] [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2025-02-13T07:20:34.490+09:00 ERROR 15072 --- [sbomgr] [           main] o.s.b.d.LoggingFailureAnalysisReporter   : 
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Parameter 0 of constructor in com.osckorea.sbomgr.util.json.SbomJsonParser required a bean of type 'com.github.benmanes.caffeine.cache.LoadingCache' that could not be found.
+
+
+Action:
+
+Consider defining a bean of type 'com.github.benmanes.caffeine.cache.LoadingCache' in your configuration.
+

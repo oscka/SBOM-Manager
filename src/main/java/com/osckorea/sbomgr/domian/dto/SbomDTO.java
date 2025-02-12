@@ -49,5 +49,28 @@ public class SbomDTO{
         private List<String> cpes;
         private List<String> licenses;
     }
+
+    @Getter
+    @NoArgsConstructor
+    @SuperBuilder
+    public static class ComponentCpesLicenseInfoV2 extends ComponentInfo {
+        private List<cpeForm> cpes;
+        private List<String> licenses;
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @SuperBuilder
+    public static class cpeForm {
+        private String exactCpe;
+        private String baseCpe;
+        private String version;
+
+        public cpeForm(String full, String base, String version) {
+            this.exactCpe = full;
+            this.baseCpe = base;
+            this.version = version;
+        }
+    }
 }
 

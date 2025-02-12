@@ -38,4 +38,13 @@ public class NvdCveParseItem {
     @Column("reference_site")
     private String referenceSite;
 
+    public NvdCveParseItem(String cveName, String description, String problemType, String referencesJson, String nvdConfJson, String impactJson, String referenceSite) {
+        this.cveName = cveName;
+        this.description = description;
+        this.problemType = problemType;
+        this.referencesJson = referencesJson;
+        this.nvdConfJson = nvdConfJson;
+        this.impactJson = impactJson;
+        this.referenceSite = referenceSite;
+    }
 }

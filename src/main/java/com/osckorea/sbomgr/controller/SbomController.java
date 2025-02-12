@@ -49,7 +49,7 @@ public class SbomController {
     @Operation(summary = "Get Vuln SBOM", description = "SBOM 취약점(분석) 조회")
     @GetMapping("/sbom/vuln/{uuid}")
     public ResponseEntity<SbomVulnDTO> getSbomVuln(@PathVariable("uuid") UUID uuid) throws IOException {
-        SbomVulnDTO sbom = sbomService.getSbomVulnDTO(uuid);
+        SbomVulnDTO sbom = sbomService.analyzeSbom(uuid);
 
         return ResponseEntity.ok(sbom);
     }

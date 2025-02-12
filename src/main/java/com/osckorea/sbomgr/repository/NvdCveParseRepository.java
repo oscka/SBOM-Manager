@@ -10,4 +10,11 @@ import java.util.List;
     List<NvdCveParseItem> findMatchingConfigurations(String allCpe, String cpe, String version);
 
     List<String> findSimpleMatchingConfigurations(String cpe, String version);
+
+    List<NvdCveParseItem> findByBaseCpe(String cpe);
+
+    List<NvdCveParseItem> findByExactCpe(String baseCpe);
+
+    List<NvdCveParseItem> findByCpe(String cpe);
+
 }

@@ -2,7 +2,11 @@ package com.osckorea.sbomgr.service;
 
 import java.util.*;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.osckorea.sbomgr.domian.dto.SbomDTO;
@@ -19,7 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -90,244 +97,263 @@ public class SbomService {
     }
 
     @Transactional
-    public SbomVulnDTO getSbomVulnDTO(UUID uuid) throws IOException {
-        Sbom sbom = sbomRepository.findByUuid(uuid).orElseThrow(() -> new RuntimeException("SBOM not found"));
-        // componentCpesLicenseInfo에는 각 컴포넌트의 cpe들과 license 정보가 들어가있음
-        List<SbomDTO.ComponentCpesLicenseInfo> componentInfoList = sbomJsonParser.componentInfosParseForVuln(sbom.getSbomJson());
+    public SbomVulnDTO analyzeSbom(UUID sbomId) throws IOException {
+        //###########################################//
+        //############### 초기 데이터 세팅 ###############//
+        //###########################################//
 
-        List<SbomVulnDTO.VulnComponentInfo> vulnComponentInfoList = new ArrayList<>();
+        Sbom sbom = sbomRepository.findByUuid(sbomId).orElseThrow();
+        // ComponentCpesLicenseInfoV2에는 각 컴포넌트의 cpeForm 목록과 라이선스 정보가 들어있음
+        List<SbomDTO.ComponentCpesLicenseInfoV2> components =
+                sbomJsonParser.componentInfosParseForVulnV2(sbom.getSbomJson());
+        List<String> allCpe = extractUniqueCpeValues(components);
+        ConcurrentLinkedQueue<NvdCveParseItem> matchedCves = new ConcurrentLinkedQueue<>();
 
-        int vulnCount = 0;
+        // DB에서 모든 CPE에 대응하는 CVE들을 조회 (동시성 체크)
+        allCpe.parallelStream().forEach(cpe -> {
+            List<NvdCveParseItem> result = nvdCveParseRepository.findByCpe(cpe);
+//            if (Objects.equals(cpe, "cpe:2.3:a:lettuce-core:lettuce_core:6.1.10.RELEASE:*:*:*:*:*:*:*")) {
+//                System.out.println(result);
+//            }
+            matchedCves.addAll(result);
+        });
+        List<NvdCveParseItem> matchedCveList = new ArrayList<>(matchedCves);
+        Map<String, SbomVulnDTO.VulnComponentInfo> vulnMap = new ConcurrentHashMap<>();
 
-        for (SbomDTO.ComponentCpesLicenseInfo componentCpesLicenseInfo : componentInfoList) {
-            String bomRef = componentCpesLicenseInfo.getBomRef();
-            List<String> licensesInfo = componentCpesLicenseInfo.getLicenses();
+        //###########################################//
+        //########## 병렬 conf_json 탐색 수행 ############//
+        //###########################################//
 
-            for (String cpe : componentCpesLicenseInfo.getCpes()){
-                String[] result = normalizeCpeUri(cpe);
-                String allCepUri = cpe;
-                String normalizedCpeUri = result[0];
-                String version = result[1];
+        // 먼저, SBOM 전체의 모든 컴포넌트의 cpeForm 정보를 후보군(Candidate)으로 모은다.
+        List<Candidate> allCandidates = new ArrayList<>();
+        for (SbomDTO.ComponentCpesLicenseInfoV2 comp : components) {
+            for (SbomDTO.cpeForm cf : comp.getCpes()) {
+                allCandidates.add(new Candidate(comp, cf));
+            }
+        }
 
-                List<NvdCveParseItem> matchingItems = nvdCveParseRepository.findMatchingConfigurations(allCepUri, normalizedCpeUri, version);
+        // 각 CVE 항목에 대해 confJson을 파싱하고 전체 후보군(allCandidates)을 대상으로 재귀적 매핑을 수행
+        matchedCveList.parallelStream().forEach(cve -> {
+            try {
+                ObjectMapper mapper = new ObjectMapper()
+                        .enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
+                        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+                // CVE의 nvdConfJson은 JSON 배열 형태로 들어있으며, 이를 ConfNode 리스트로 매핑
+                List<ConfNode> confNodes = mapper.readValue(
+                        cve.getNvdConfJson(),
+                        new TypeReference<List<ConfNode>>() {}
+                );
 
-                if (!matchingItems.isEmpty()) {
-                    vulnComponentInfoList.addAll(processVulnerabilities(matchingItems, allCepUri, normalizedCpeUri, version, bomRef, licensesInfo));
+                // 모든 루트 노드에 대해 후보군을 재귀 평가하여 매핑 정보를 생성한다.
+                Map<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> globalMapping = new HashMap<>();
+                for (ConfNode root : confNodes) {
+                    Map<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> map = evaluateNodeMappingCandidate(root, allCandidates);
+                    globalMapping = unionMapping(globalMapping, map);
+                }
+
+                // 전체 매핑이 비어있지 않다는 것은, SBOM 전체에서 CVE의 조건이 만족되었음을 의미
+                if (!globalMapping.isEmpty()) {
+                    // 각 기여 컴포넌트마다 Vulnerability 정보를 생성
+                    globalMapping.forEach((comp, cpeSet) -> {
+                        String compositeKey = comp.getBomRef() + ":" + cve.getCveName();
+                        SbomVulnDTO.VulnComponentInfo info = SbomVulnDTO.VulnComponentInfo.builder()
+                                .cveName(cve.getCveName())
+                                .description(cve.getDescription())
+                                .problemType(cve.getProblemType())
+                                .referencesJson(cve.getReferencesJson())
+                                .impactJson(cve.getImpactJson())
+                                .referenceSite(cve.getReferenceSite())
+                                .componentName(comp.getName())
+                                .cpe(new ArrayList<>(cpeSet)) // 해당 컴포넌트가 제공한 취약 CPE 목록
+                                .licenseInfo(comp.getLicenses())
+                                .build();
+                        vulnMap.putIfAbsent(compositeKey, info);
+                    });
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        return SbomVulnDTO.builder()
+                .name(sbom.getName())
+                .vulnComponentCount(vulnMap.size())
+                .allComponentCount(components.size())
+                .vulncomponentInfoList(new ArrayList<>(vulnMap.values()))
+                .build();
+    }
+
+
+    private static class Candidate {
+        private SbomDTO.ComponentCpesLicenseInfoV2 component;
+        private SbomDTO.cpeForm cpe;
+        public Candidate(SbomDTO.ComponentCpesLicenseInfoV2 component, SbomDTO.cpeForm cpe) {
+            this.component = component;
+            this.cpe = cpe;
+        }
+        public SbomDTO.ComponentCpesLicenseInfoV2 getComponent() { return component; }
+        public SbomDTO.cpeForm getCpe() { return cpe; }
+    }
+
+    /* JSON 매핑 클래스 */
+    @lombok.Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class ConfNode {
+        private String operator;
+        private List<ConfNode> children;
+        @JsonProperty("cpe_match")
+        private List<CpeMatch> cpeMatch;
+    }
+
+    @lombok.Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class CpeMatch {
+        private boolean vulnerable;
+        private String cpe23Uri;
+        private String versionStartIncluding;
+        private String versionEndIncluding;
+        private String versionStartExcluding;
+        private String versionEndExcluding;
+    }
+
+    /* 재귀 평가 로직: 전체 후보군 대상으로 매핑 정보를 생성 */
+    private Map<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> evaluateNodeMappingCandidate(ConfNode node, List<Candidate> candidates) {
+        Map<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> currentMapping = new HashMap<>();
+        // 현재 노드의 cpe_match 항목은 OR 관계로 처리: 하나라도 매칭되면 매핑에 추가
+        if (node.getCpeMatch() != null) {
+            for (CpeMatch cm : node.getCpeMatch()) {
+                if (cm.isVulnerable()) {
+                    for (Candidate cand : candidates) {
+                        if (isCpeMatch(cm, cand.getCpe())) {
+                            currentMapping.computeIfAbsent(cand.getComponent(), k -> new HashSet<>())
+                                    .add(cand.getCpe().getExactCpe());
+                        }
+                    }
                 }
             }
         }
-
-        // 중복 제거를 위한 Set으로 변환 후 다시 List로 변환
-        Set<SbomVulnDTO.VulnComponentInfo> uniqueComponents = new HashSet<>(vulnComponentInfoList);
-        vulnComponentInfoList = new ArrayList<>(uniqueComponents);
-
-        vulnCount = vulnComponentInfoList.size();
-
-        SbomVulnDTO sbomVulnDto = SbomVulnDTO.builder()
-                .name(sbom.getName())
-                .vulnComponentCount(vulnCount)
-                .allComponentCount(sbom.getComponentCount())
-                .vulncomponentInfoList(vulnComponentInfoList)
-                .build();
-
-        return sbomVulnDto;
-    }
-
-    private List<SbomVulnDTO.VulnComponentInfo> processVulnerabilities(List<NvdCveParseItem> matchingItems, String allCepUri, String normalizedCpeUri, String version, String bomRef, List<String> licenseInfo) throws JsonProcessingException {
-        List<SbomVulnDTO.VulnComponentInfo> componentInfoList = new ArrayList<>();
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        for (NvdCveParseItem item : matchingItems) {
-
-            JsonNode rootNodes = objectMapper.readTree(item.getNvdConfJson());
-
-            for (JsonNode subNode : rootNodes) {
-                // 각 배열 항목의 operator 추출, 기본값은 "OR"
-                String operator = subNode.path("operator").asText("OR");
-                processNode(subNode, allCepUri, normalizedCpeUri, version, item, componentInfoList, operator, null, bomRef, licenseInfo);
+        // 자식 노드 평가
+        Map<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> childrenMapping = new HashMap<>();
+        if (node.getChildren() != null && !node.getChildren().isEmpty()) {
+            if ("AND".equalsIgnoreCase(node.getOperator())) {
+                boolean allChildrenSatisfied = true;
+                for (ConfNode child : node.getChildren()) {
+                    Map<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> childMap = evaluateNodeMappingCandidate(child, candidates);
+                    if (childMap.isEmpty()) {
+                        allChildrenSatisfied = false;
+                        break;                    }
+                    childrenMapping = unionMapping(childrenMapping, childMap);
+                }
+                if (!allChildrenSatisfied)
+                    childrenMapping.clear();
+            } else { // OR 연산자인 경우
+                for (ConfNode child : node.getChildren()) {
+                    Map<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> childMap = evaluateNodeMappingCandidate(child, candidates);
+                    childrenMapping = unionMapping(childrenMapping, childMap);
+                }
             }
         }
-
-        return componentInfoList;
-    }
-
-    private void processNode(JsonNode node, String allCepUri, String normalizedCpeUri, String version, NvdCveParseItem item, List<SbomVulnDTO.VulnComponentInfo> componentInfoList, String parentOperator, String thisOperator, String bomRef, List<String> licenseInfo) {
-
-        // 1. 현재 노드의 cpe_match 탐색 및 처리
-        JsonNode cpeMatchNodes = node.path("cpe_match");
-        if (!cpeMatchNodes.isEmpty()){
-            processCpeMatches(cpeMatchNodes, allCepUri, normalizedCpeUri, version, item, componentInfoList, parentOperator, thisOperator, bomRef, licenseInfo);
-        }
-
-        parentOperator = node.path("operator").asText();
-
-        // 2. 현재 노드의 children 속성에 대해 재귀적으로 탐색
-        for (JsonNode childNode : node.path("children")) {
-            // 자식 노드에서 operator 값을 추출
-            thisOperator = childNode.path("operator").asText(null);
-            // operator가 없다면 부모의 operator를 사용
-            processNode(childNode, allCepUri, normalizedCpeUri, version, item, componentInfoList, parentOperator, thisOperator, bomRef, licenseInfo);
-        }
-    }
-
-    private void processCpeMatches(JsonNode cpeMatchNodes, String allCepUri, String normalizedCpeUri, String version,
-                                   NvdCveParseItem item, List<SbomVulnDTO.VulnComponentInfo> componentInfoList, String parentOperator,
-                                   String thisOperator, String bomRef, List<String> licenseInfo) {
-        for (JsonNode cpeMatchNode : cpeMatchNodes) {
-            String cpe23Uri = cpeMatchNode.path("cpe23Uri").asText();
-            boolean isVulnerable = cpeMatchNode.path("vulnerable").asBoolean();
-
-            // 1. allCepUri 확인 (추가 버전 확인 없이 바로 처리)
-            if (cpe23Uri.equals(allCepUri)) {
-                processOperator(cpeMatchNode, isVulnerable, item, componentInfoList, parentOperator, thisOperator, allCepUri, bomRef, licenseInfo);
+        Map<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> combinedMapping = new HashMap<>();
+        if ("AND".equalsIgnoreCase(node.getOperator())) {
+            if (!currentMapping.isEmpty() && !childrenMapping.isEmpty()) {
+                combinedMapping = unionMapping(currentMapping, childrenMapping);
+            } else {
+                // AND 조건은 모두 적용되어야 하므로, 하나라도 비어있으면 전체 조건 미충족
+                if (!currentMapping.isEmpty()) {
+                    combinedMapping.putAll(currentMapping);
+                }
+                else {
+                    combinedMapping.putAll(childrenMapping);
+                }
             }
-            // 2. normalizedCpeUri 확인 및 버전 포함 여부 확인
-            else if (cpe23Uri.equals(normalizedCpeUri)) {
-                boolean versionIncluded = isVersionIncluded(cpeMatchNode, version);
-                if (versionIncluded) {
-                    processOperator(cpeMatchNode, isVulnerable, item, componentInfoList, parentOperator, thisOperator, allCepUri, bomRef, licenseInfo);
-                };
-            }
+        } else {
+            // OR 조건: 현재와 자식 결과의 합집합
+            combinedMapping = unionMapping(currentMapping, childrenMapping);
         }
+        return combinedMapping;
     }
 
-    private boolean isVersionIncluded(JsonNode cpeMatchNode, String version) {
-        if (!isValidVersion(version)) {
-            handleInvalidVersion(version);
+    /* 두 개의 매핑을 union하는 헬퍼: 같은 컴포넌트 키의 set들을 합친다. */
+    private Map<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> unionMapping(
+            Map<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> map1,
+            Map<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> map2) {
+        Map<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> result = new HashMap<>(map1);
+        for (Map.Entry<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> entry : map2.entrySet()) {
+            result.merge(entry.getKey(), entry.getValue(), (set1, set2) -> { set1.addAll(set2); return set1; });
+        }
+        return result;
+    }
+
+    /* CPE 매칭 로직: exactCpe의 경우 단순 문자열 비교, baseCpe의 경우 버전 비교 포함 */
+    private boolean isCpeMatch(CpeMatch cveCpe, SbomDTO.cpeForm componentCpe) {
+        // 정확 일치 확인
+        if (componentCpe.getExactCpe().equals(cveCpe.getCpe23Uri()))
             return true;
+        // 베이스 CPE + 버전 비교
+        return compareBaseCpe(
+                cveCpe.getCpe23Uri(),
+                componentCpe.getBaseCpe(),
+                componentCpe.getVersion(),
+                cveCpe.getVersionStartIncluding(),
+                cveCpe.getVersionEndIncluding(),
+                cveCpe.getVersionStartExcluding(),
+                cveCpe.getVersionEndExcluding()
+        );
+    }
+
+    private boolean compareBaseCpe(String cveUri, String baseUri, String version,
+                                   String startIncl, String endIncl,
+                                   String startExcl, String endExcl) {
+        if (!cveUri.startsWith(baseUri))
+            return false;
+        try {
+            VersionComparator vc = new VersionComparator(version);
+            return (startIncl == null || vc.compareTo(startIncl) >= 0)
+                    && (endIncl == null || vc.compareTo(endIncl) <= 0)
+                    && (startExcl == null || vc.compareTo(startExcl) > 0)
+                    && (endExcl == null || vc.compareTo(endExcl) < 0);
+        } catch (Exception e) {
+            return false;
         }
+    }
 
-        String versionStartIncluding = cpeMatchNode.has("versionStartIncluding") ? cpeMatchNode.path("versionStartIncluding").asText() : null;
-        String versionStartExcluding = cpeMatchNode.has("versionStartExcluding") ? cpeMatchNode.path("versionStartExcluding").asText() : null;
-        String versionEndIncluding = cpeMatchNode.has("versionEndIncluding") ? cpeMatchNode.path("versionEndIncluding").asText() : null;
-        String versionEndExcluding = cpeMatchNode.has("versionEndExcluding") ? cpeMatchNode.path("versionEndExcluding").asText() : null;
-
-        if ((versionStartIncluding != null && !isValidVersion(versionStartIncluding)) ||
-                (versionStartExcluding != null && !isValidVersion(versionStartExcluding)) ||
-                (versionEndIncluding != null && !isValidVersion(versionEndIncluding)) ||
-                (versionEndExcluding != null && !isValidVersion(versionEndExcluding))) {
-            return true;
+    /* 버전 비교 도우미 클래스 */
+    class VersionComparator implements Comparable<String> {
+        private final String[] parts;
+        public VersionComparator(String version) {
+            this.parts = version.split("[\\.\\-]");
         }
-
-        boolean startIncluding = versionStartIncluding == null || compareVersions(version, versionStartIncluding) >= 0;
-        boolean startExcluding = versionStartExcluding == null || compareVersions(version, versionStartExcluding) > 0;
-        boolean endIncluding = versionEndIncluding == null || compareVersions(version, versionEndIncluding) <= 0;
-        boolean endExcluding = versionEndExcluding == null || compareVersions(version, versionEndExcluding) < 0;
-
-        return startIncluding && startExcluding && endIncluding && endExcluding;
-    }
-
-    private boolean isValidVersion(String version) {
-        return version.matches("^[0-9]+(\\.[0-9]+)*$");
-    }
-
-    private void handleInvalidVersion(String version) {
-        System.out.println("Invalid version format detected: " + version);
-    }
-
-    private int compareVersions(String version1, String version2) {
-        String[] parts1 = normalizeVersion(version1).split("\\.");
-        String[] parts2 = normalizeVersion(version2).split("\\.");
-
-        int maxLength = Math.max(parts1.length, parts2.length);
-        for (int i = 0; i < maxLength; i++) {
-            int num1 = i < parts1.length ? Integer.parseInt(parts1[i]) : 0;
-            int num2 = i < parts2.length ? Integer.parseInt(parts2[i]) : 0;
-
-            if (num1 != num2) {
-                return Integer.compare(num1, num2);
+        @Override
+        public int compareTo(String other) {
+            String[] otherParts = other.split("[\\.\\-]");
+            int maxLength = Math.max(parts.length, otherParts.length);
+            for (int i = 0; i < maxLength; i++) {
+                int thisVal = (i < parts.length) ? parse(parts[i]) : 0;
+                int otherVal = (i < otherParts.length) ? parse(otherParts[i]) : 0;
+                if (thisVal != otherVal)
+                    return Integer.compare(thisVal, otherVal);
             }
+            return 0;
         }
-        return 0;
-    }
-
-    private String normalizeVersion(String version) {
-        return Arrays.stream(version.split("\\."))
-                .map(part -> String.valueOf(Integer.parseInt(part)))
-                .reduce((a, b) -> a + "." + b)
-                .orElse("");
-    }
-
-    private void processOperator(JsonNode node, boolean isVulnerable, NvdCveParseItem item, List<SbomVulnDTO.VulnComponentInfo> componentInfoList,
-                                 String parentOperator, String thisOperator, String allCpeUri,String bomRef, List<String> licenseInfo) {
-        if (isVulnerable) {
-            String operator = thisOperator;
-
-            List<String> allCpeUris = new ArrayList<>();
-            allCpeUris.add(allCpeUri);
-
-            if ("OR".equalsIgnoreCase(operator) || operator == null) {
-                // TODO: OR 연산 처리 완료 후 상위 operator가 AND인 경우 추가 처리 필요 하위는 추가 처리 필요 X
-                SbomVulnDTO.VulnComponentInfo vulnInfo = SbomVulnDTO.VulnComponentInfo.builder()
-                        .cveName(item.getCveName())
-                        .cpe(allCpeUris)
-                        .description(item.getDescription())
-                        .problemType(item.getProblemType())
-                        .referencesJson(item.getReferencesJson())
-                        .impactJson(item.getImpactJson())
-                        .referenceSite(item.getReferenceSite())
-                        .componentName(extractedComponentName(bomRef))
-                        .licenseInfo(licenseInfo)
-                        .build();
-                componentInfoList.add(vulnInfo);
-            } else if ("AND".equalsIgnoreCase(operator)) {
-                // TODO: AND 연산 처리 로직 추가
-                SbomVulnDTO.VulnComponentInfo vulnInfo = SbomVulnDTO.VulnComponentInfo.builder()
-                        .cveName(item.getCveName())
-                        .cpe(allCpeUris)
-                        .description(item.getDescription())
-                        .problemType(item.getProblemType())
-                        .referencesJson(item.getReferencesJson())
-                        .impactJson(item.getImpactJson())
-                        .referenceSite(item.getReferenceSite())
-                        .componentName(extractedComponentName(bomRef))
-                        .licenseInfo(licenseInfo)
-                        .build();
-                componentInfoList.add(vulnInfo);
+        private int parse(String part) {
+            try {
+                return Integer.parseInt(part);
+            } catch (NumberFormatException e) {
+                return part.equalsIgnoreCase("x") ? Integer.MAX_VALUE : part.hashCode();
             }
         }
     }
 
-    public String[] normalizeCpeUri(String cpeUri) {
-        String[] parts = cpeUri.split(":");
-
-        String version = parts[5];
-
-        parts[5] = "*";
-        parts[6] = "*";
-        parts[7] = "*";
-
-        String normalizedCpeUri = String.join(":", parts);
-
-        return new String[]{normalizedCpeUri, version};
-    }
-
-    public String extractedComponentName(String bomRef) {
-        // 첫 번째 '/' 이후의 문자열만 추출
-        int firstSlashIndex = bomRef.indexOf('/');
-        if (firstSlashIndex != -1) {
-            bomRef = bomRef.substring(firstSlashIndex + 1);
-        }
-
-        // "@"를 기준으로 패키지와 버전 분리
-        String[] parts = bomRef.split("@");
-
-        if (parts.length > 1) {
-            // 패키지 부분을 ':'로 분리
-            String[] packageParts = parts[0].split("/");
-
-            // 버전 부분에 "?"가 있으면 그 이후의 문자열 제거
-            int questionMarkIndex = parts[1].indexOf("?");
-            if (questionMarkIndex != -1) {
-                parts[1] = parts[1].substring(0, questionMarkIndex);
-            }
-
-            // 패키지와 버전을 ":"로 결합
-            return packageParts.length > 1
-                    ? packageParts[0] + ":" + packageParts[1] + ":" + parts[1]
-                    : parts[0] + ":" + parts[1];
-        }
-
-        return bomRef;
+    public List<String> extractUniqueCpeValues(List<SbomDTO.ComponentCpesLicenseInfoV2> components) {
+        return components.stream()
+                // 각 컴포넌트의 cpeForm 리스트가 null이 아니면 처리
+                .filter(component -> component.getCpes() != null)
+                // 모든 컴포넌트의 cpeForm 리스트를 평면화(flatMap)
+                .flatMap(component -> component.getCpes().stream())
+                // 각 cpeForm에서 exactCpe와 baseCpe 두 값을 가져와서 스트림의 두 요소로 만듦
+                .flatMap(cpeForm -> Stream.of(cpeForm.getExactCpe(), cpeForm.getBaseCpe()))
+                // 중복 제거 후 List로 수집
+                .distinct()
+                .collect(Collectors.toList());
     }
 }

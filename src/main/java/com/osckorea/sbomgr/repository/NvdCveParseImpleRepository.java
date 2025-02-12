@@ -1,8 +1,10 @@
 package com.osckorea.sbomgr.repository;
 
 
+
 import com.osckorea.sbomgr.domian.entity.NvdCveParseItem;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.repository.query.Param;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -27,17 +29,17 @@ public class NvdCveParseImpleRepository implements NvdCveParseRepository{
 
         // SQL 쿼리
         String sql = """
-        SELECT *
-        FROM test_schema.nvd_cve_parse_item
-        WHERE nvd_conf_json @? '$.**.cpe_match[*] ? (@.cpe23Uri == "%s")'
-           OR nvd_conf_json @? '$.**.cpe_match[*] ? (
-                @.cpe23Uri == "%s" &&
-                (!exists(@.versionStartIncluding) || @.versionStartIncluding <= "%s") &&
-                (!exists(@.versionStartExcluding) || @.versionStartExcluding < "%s") &&
-                (!exists(@.versionEndIncluding) || @.versionEndIncluding >= "%s") &&
-                (!exists(@.versionEndExcluding) || @.versionEndExcluding > "%s")
-            )'
-        """.formatted(allCpe, escapedCpe, escapedVersion, escapedVersion, escapedVersion, escapedVersion);
+                SELECT *
+                FROM test_schema.nvd_cve_parse_item
+                WHERE nvd_conf_json @? '$.**.cpe_match[*] ? (@.cpe23Uri == "%s")'
+                   OR nvd_conf_json @? '$.**.cpe_match[*] ? (
+                        @.cpe23Uri == "%s" &&
+                        (!exists(@.versionStartIncluding) || @.versionStartIncluding <= "%s") &&
+                        (!exists(@.versionStartExcluding) || @.versionStartExcluding < "%s") &&
+                        (!exists(@.versionEndIncluding) || @.versionEndIncluding >= "%s") &&
+                        (!exists(@.versionEndExcluding) || @.versionEndExcluding > "%s")
+                    )'
+                """.formatted(allCpe, escapedCpe, escapedVersion, escapedVersion, escapedVersion, escapedVersion);
 
         // 쿼리 실행 및 결과 매핑
         return jdbcTemplate.query(sql, (rs, rowNum) -> {
@@ -51,6 +53,69 @@ public class NvdCveParseImpleRepository implements NvdCveParseRepository{
             item.setReferenceSite(rs.getString("reference_site"));
             return item;
         });
+    }
+
+    @Cacheable(value = "exactCpeCache", key = "#p0")
+    public List<NvdCveParseItem> findByExactCpe(@Param("cpe") String cpe) {
+
+        // SQL 쿼리
+        String EXACT_QUERY = """
+                SELECT *
+                FROM test_schema.nvd_cve_parse_item
+                WHERE nvd_conf_json @? '$.**.cpe_match[*] ? (@.cpe23Uri == "%s")'
+                """.formatted(cpe);
+        return jdbcTemplate.query(EXACT_QUERY, (rs, rowNum) ->
+                new NvdCveParseItem(
+                        rs.getString("cve_name"),
+                        rs.getString("description"),
+                        rs.getString("problem_type"),
+                        rs.getString("references_json"),
+                        rs.getString("nvd_conf_json"),
+                        rs.getString("impact_json"),
+                        rs.getString("reference_site")
+                ));
+    }
+
+    @Cacheable(value = "cpeCache", key = "#p0")
+    public List<NvdCveParseItem> findByCpe(@Param("cpe") String cpe) {
+        // SQL 쿼리
+        String QUERY = """
+                SELECT *
+                FROM test_schema.nvd_cve_parse_item
+                WHERE nvd_conf_json @? '$.**.cpe_match[*] ? (@.cpe23Uri == "%s")'
+                """.formatted(cpe);
+        return jdbcTemplate.query(QUERY, (rs, rowNum) ->
+                new NvdCveParseItem(
+                        rs.getString("cve_name"),
+                        rs.getString("description"),
+                        rs.getString("problem_type"),
+                        rs.getString("references_json"),
+                        rs.getString("nvd_conf_json"),
+                        rs.getString("impact_json"),
+                        rs.getString("reference_site")
+                ));
+    }
+
+
+    @Cacheable(value = "baseCpeCache", key = "#p0")
+    public List<NvdCveParseItem> findByBaseCpe(@Param("baseCpe") String baseCpe) {
+
+        String BASE_QUERY = """
+        SELECT *
+        FROM test_schema.nvd_cve_parse_item 
+        WHERE nvd_conf_json @? '$.**.cpe_match[*] ? (@.cpe23Uri == "%s")'
+        """.formatted(baseCpe);
+
+        return jdbcTemplate.query(BASE_QUERY, (rs, rowNum) ->
+                new NvdCveParseItem(
+                        rs.getString("cve_name"),
+                        rs.getString("description"),
+                        rs.getString("problem_type"),
+                        rs.getString("references_json"),
+                        rs.getString("nvd_conf_json"),
+                        rs.getString("impact_json"),
+                        rs.getString("reference_site")
+                ));
     }
 
 

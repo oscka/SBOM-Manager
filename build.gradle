@@ -44,6 +44,11 @@ dependencies {
 	implementation 'org.hibernate.validator:hibernate-validator'
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	implementation 'org.postgresql:postgresql'
+	// 기본 캐시 기능 활성화 (Spring Cache Abstraction)
+	implementation 'org.springframework.boot:spring-boot-starter-cache'
+	// Caffeine 캐시 구현체
+	implementation 'com.github.ben-manes.caffeine:caffeine'
+
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.postgresql:postgresql'
 	annotationProcessor 'org.projectlombok:lombok'
