@@ -209,13 +209,17 @@ docker run -d --name oauth2-proxy-github \
 
 URL : http://localhost:8088/sample-api/v1/test/user
 
-Example Value => X
+Parameter => X
+<br>
+Request Body => X
 
 #### Create User(POST)
 
 URL : http://localhost:8088/sample-api/v1/test/user
 
-Example Value
+Parameter => X
+<br>
+Request Body => 
 ```
 {
   "username": "string",
@@ -242,7 +246,9 @@ EX) Body
 
 URL : http://localhost:8088/sample-api/v1/test/user/{id}
 
-Example Value
+Parameter => X
+<br>
+Request Body => 
 ```
 {
   "username": "string",
@@ -269,10 +275,35 @@ EX) Body
 
 URL : http://localhost:8088/sample-api/v1/test/user/{id}
 
-Example Value 
+Parameter => X
+<br>
+Request Body => X
 
 ---
 ### SBOM API
+
+#### Get Sbom(GET)
+
+URL : http://localhost:8088/sample-api/v1/test/sbom/{uuid}
+
+> URL EX) http://localhost:8088/sample-api/v1/test/sbom/d8e6abf6-48a5-4f26-a9c0-375d30f63705
+> <br>
+> Parameter => X
+> <br>
+> Request Body => X
+
+
+#### Create VulnSbom(Get)
+
+URL : http://localhost:8088/sample-api/v1/test/sbom/vuln/{uuid}
+
+> URL EX)
+> <br>
+> http://localhost:8088/sample-api/v1/test/sbom/vuln/e02f09d2-2de0-406a-8e74-f70dfc0713fd
+> Parameter => X
+> <br>
+> Request Body => X 
+
 
 #### Create Sbom(POST)
 
@@ -281,28 +312,23 @@ Example Value
 > http://localhost:4180/sample-api/v1/test/sbom  (Google)    
 > http://localhost:4181/sample-api/v1/test/sbom  (GitHub)
 
-Required Header
+Parameter => 
 ```
-Key 1   : X-Forwarded-Email => Oauth2 Login을 통해 확인 가능
-Value 1 : Oauth2 Login으로 request에 세팅된 X-Forwarded-Email
+Key 1   : Cookie => Oauth2 Login 후 개발자 페이지의 쿠키 확인
+Value 1 : Google 로그인일 경우 쿠키의 시작이 _oauth2_proxy, Git 로그인인 경우 쿠키의 시작이 _oauth2_proxy_git 로 시작한다. 해당 쿠키를 사용
 ```
 
-EX) Body
+Request Body => 
 ```
 하기 링크에 존재하는 Syft 로 생성한 CycloneDX, SPDX Form의 json 파일
 
 [https://osc-korea.atlassian.net/wiki/spaces/consulting/pages/1274150926/SBOM+Generator#%EA%B0%81-%EC%96%B8%EC%96%B4%EC%9D%98-%ED%8C%8C%EC%9D%BC,%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B8%B0%EB%B0%98-SBOM](https://osc-korea.atlassian.net/wiki/spaces/consulting/pages/1279983707/SBOM#Create-Sbom(POST))
 ```
 
-#### Get Sbom(GET)
-
-URL : http://localhost:8088/sample-api/v1/test/sbom/{uuid}
-
-> URL EX) http://localhost:8088/sample-api/v1/test/sbom/d8e6abf6-48a5-4f26-a9c0-375d30f63705
-<br>
-Example Value => X
 
 ---
+
+
 ## OAuth2 Proxy Test
 > OAuth2 Proxy API는 브라우저로 테스트 시 별도의 Header 세팅 불필요
 
@@ -318,11 +344,13 @@ Example Value => X
 ##### Google, Github 
 URL : http://localhost:{Proxy Server URL}/sample-api/v1/test/email
 
-Required Header
+Parameter => 
 ```
 Key 1   : X-Forwarded-Email => Oauth2 Login을 통해 확인 가능
 Value 1 : Oauth2 Login으로 request에 세팅된 X-Forwarded-Email
 ```
+Request Body => X
+
 
 > EX)
 > <br>
@@ -336,13 +364,15 @@ Value 1 : Oauth2 Login으로 request에 세팅된 X-Forwarded-Email
 
 URL : http://localhost:{Proxy Server URL}/sample-api/v1/test/userinfo
 
-Required Header
+Parameter => 
 ```
 Key 1   : Cookie => Oauth2 Login을 통해 확인 가능
 Value 1 : Oauth2 Login시 개발자 도구에서 확인된 쿠키
 GitHub Cookie EX : _oauth2_proxy=g1PiJ..........
 Google Cookie EX : _oauth2_proxy_git=_gYHRBg.........
 ```
+Request Body => X
+
 > EX)
 > <br>
 > http://localhost:4180/sample-api/v1/test/userinfo  (Google)    
