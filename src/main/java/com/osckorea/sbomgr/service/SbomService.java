@@ -2,13 +2,10 @@ package com.osckorea.sbomgr.service;
 
 import java.util.*;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.osckorea.sbomgr.domian.dto.ConfNode;
 import com.osckorea.sbomgr.domian.dto.SbomDTO;
 import com.osckorea.sbomgr.domian.dto.SbomVulnDTO;
 import com.osckorea.sbomgr.domian.entity.NvdCveParseItem;
@@ -16,6 +13,7 @@ import com.osckorea.sbomgr.domian.entity.Sbom;
 import com.osckorea.sbomgr.domian.enums.SbomConstants;
 import com.osckorea.sbomgr.repository.NvdCveParseRepository;
 import com.osckorea.sbomgr.repository.SbomRepository;
+import com.osckorea.sbomgr.util.VersionComparator;
 import com.osckorea.sbomgr.util.json.SbomJsonParser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -99,7 +97,7 @@ public class SbomService {
     @Transactional
     public SbomVulnDTO analyzeSbom(UUID sbomId) throws IOException {
         //###########################################//
-        //############### 초기 데이터 세팅 ###############//
+        //############### 초기 데이터 세팅 #############//
         //###########################################//
 
         Sbom sbom = sbomRepository.findByUuid(sbomId).orElseThrow();
@@ -120,16 +118,17 @@ public class SbomService {
         List<NvdCveParseItem> matchedCveList = new ArrayList<>(matchedCves);
         Map<String, SbomVulnDTO.VulnComponentInfo> vulnMap = new ConcurrentHashMap<>();
 
-        //###########################################//
-        //########## 병렬 conf_json 탐색 수행 ############//
-        //###########################################//
-
+        // 모든 컴포넌트에 대한 CPE 정보 저장
         List<Candidate> allCandidates = new ArrayList<>();
         for (SbomDTO.ComponentCpesLicenseInfoV2 comp : components) {
             for (SbomDTO.cpeForm cf : comp.getCpes()) {
                 allCandidates.add(new Candidate(comp, cf));
             }
         }
+
+        //###########################################//
+        //########## 병렬 conf_json 탐색 수행 ##########//
+        //###########################################//
 
         // 각 CVE 항목에 대해 confJson을 파싱하고 재귀적 매핑을 수행
         matchedCveList.parallelStream().forEach(cve -> {
@@ -146,6 +145,7 @@ public class SbomService {
                 // 모든 루트 노드에 대해 후보군을 재귀 평가하여 매핑 정보를 생성
                 Map<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> globalMapping = new HashMap<>();
                 for (ConfNode root : confNodes) {
+                    // CVE 데이터 단건과 모든 컴포넌트 데이터를 넣은 allCandidates 정보를 가지고 CVE 탐색 수행 (재귀적 수행)
                     Map<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> map = evaluateNodeMappingCandidate(root, allCandidates);
                     globalMapping = unionMapping(globalMapping, map);
                 }
@@ -153,6 +153,7 @@ public class SbomService {
                 // 전체 매핑이 하나라도 있으면 SBOM에서 CVE조건이 만족됐음을 의미
                 if (!globalMapping.isEmpty()) {
                     // 각 기여 컴포넌트마다 Vulnerability 정보를 생성
+                    // globalMapping.forEach는 취약점이 발견된 컴포넌트별로 객체 생성
                     globalMapping.forEach((comp, cpeSet) -> {
                         String compositeKey = comp.getBomRef() + ":" + cve.getCveName();
                         SbomVulnDTO.VulnComponentInfo info = SbomVulnDTO.VulnComponentInfo.builder()
@@ -182,28 +183,16 @@ public class SbomService {
                 .build();
     }
 
-
-    // 후보군 객체
-    private static class Candidate {
-        private SbomDTO.ComponentCpesLicenseInfoV2 component;
-        private SbomDTO.cpeForm cpe;
-        public Candidate(SbomDTO.ComponentCpesLicenseInfoV2 component, SbomDTO.cpeForm cpe) {
-            this.component = component;
-            this.cpe = cpe;
-        }
-        public SbomDTO.ComponentCpesLicenseInfoV2 getComponent() { return component; }
-        public SbomDTO.cpeForm getCpe() { return cpe; }
-    }
-
     // 재귀 평가 로직: 전체 후보군 대상으로 매핑 정보를 생성
     private Map<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> evaluateNodeMappingCandidate(ConfNode node, List<Candidate> candidates) {
         Map<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> currentMapping = new HashMap<>();
-        // 현재 노드(정확히 말하자면 최상위 노드)의 cpe_match 항목은 OR 관계로 처리: 하나라도 매칭되면 매핑에 추가
+        // 현재 노드의 cpe_match 항목은 OR 관계로 처리: 하나라도 매칭되면 매핑에 추가
         if (node.getCpeMatch() != null) {
-            for (CpeMatch cm : node.getCpeMatch()) {
+            for (ConfNode.CpeMatch cm : node.getCpeMatch()) {
                 if (cm.isVulnerable()) {
                     for (Candidate cand : candidates) {
                         if (isCpeMatch(cm, cand.getCpe())) {
+                            // 노드에 키값이 존재하면 냅두고 아니면 값 추가
                             currentMapping.computeIfAbsent(cand.getComponent(), k -> new HashSet<>())
                                     .add(cand.getCpe().getExactCpe());
                         }
@@ -220,7 +209,8 @@ public class SbomService {
                     Map<SbomDTO.ComponentCpesLicenseInfoV2, Set<String>> childMap = evaluateNodeMappingCandidate(child, candidates);
                     if (childMap.isEmpty()) {
                         allChildrenSatisfied = false;
-                        break;                    }
+                        break;
+                    }
                     childrenMapping = unionMapping(childrenMapping, childMap);
                 }
                 if (!allChildrenSatisfied)
@@ -264,7 +254,7 @@ public class SbomService {
     }
 
     // CPE 매칭 로직: exactCpe의 경우 단순 문자열 비교, baseCpe의 경우 버전 비교 포함
-    private boolean isCpeMatch(CpeMatch cveCpe, SbomDTO.cpeForm componentCpe) {
+    private boolean isCpeMatch(ConfNode.CpeMatch cveCpe, SbomDTO.cpeForm componentCpe) {
         // 정확하게 일치 확인
         if (componentCpe.getExactCpe().equals(cveCpe.getCpe23Uri()))
             return true;
@@ -297,33 +287,6 @@ public class SbomService {
         }
     }
 
-    // 버전 비교 내부 클래스
-    class VersionComparator implements Comparable<String> {
-        private final String[] parts;
-        public VersionComparator(String version) {
-            this.parts = version.split("[\\.\\-]");
-        }
-        @Override
-        public int compareTo(String other) {
-            String[] otherParts = other.split("[\\.\\-]");
-            int maxLength = Math.max(parts.length, otherParts.length);
-            for (int i = 0; i < maxLength; i++) {
-                int thisVal = (i < parts.length) ? parse(parts[i]) : 0;
-                int otherVal = (i < otherParts.length) ? parse(otherParts[i]) : 0;
-                if (thisVal != otherVal)
-                    return Integer.compare(thisVal, otherVal);
-            }
-            return 0;
-        }
-        private int parse(String part) {
-            try {
-                return Integer.parseInt(part);
-            } catch (NumberFormatException e) {
-                return part.equalsIgnoreCase("x") ? Integer.MAX_VALUE : part.hashCode();
-            }
-        }
-    }
-
     public List<String> extractUniqueCpeValues(List<SbomDTO.ComponentCpesLicenseInfoV2> components) {
         return components.stream()
                 // 각 컴포넌트의 cpeForm 리스트가 null이 아니면 처리
@@ -337,24 +300,15 @@ public class SbomService {
                 .collect(Collectors.toList());
     }
 
-    // JSON 매핑 클래스
-    @lombok.Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class ConfNode {
-        private String operator;
-        private List<ConfNode> children;
-        @JsonProperty("cpe_match")
-        private List<CpeMatch> cpeMatch;
-    }
-
-    @lombok.Data
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class CpeMatch {
-        private boolean vulnerable;
-        private String cpe23Uri;
-        private String versionStartIncluding;
-        private String versionEndIncluding;
-        private String versionStartExcluding;
-        private String versionEndExcluding;
+    // 후보군 객체
+    private static class Candidate {
+        private SbomDTO.ComponentCpesLicenseInfoV2 component;
+        private SbomDTO.cpeForm cpe;
+        public Candidate(SbomDTO.ComponentCpesLicenseInfoV2 component, SbomDTO.cpeForm cpe) {
+            this.component = component;
+            this.cpe = cpe;
+        }
+        public SbomDTO.ComponentCpesLicenseInfoV2 getComponent() { return component; }
+        public SbomDTO.cpeForm getCpe() { return cpe; }
     }
 }

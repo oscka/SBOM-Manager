@@ -76,7 +76,7 @@ public class NvdCveParseImpleRepository implements NvdCveParseRepository{
                 ));
     }
 
-    @Cacheable(value = "cpeCache", key = "#p0")
+//    @Cacheable(value = "cpeCache", key = "#p0")
     public List<NvdCveParseItem> findByCpe(@Param("cpe") String cpe) {
         // SQL 쿼리
         String QUERY = """
